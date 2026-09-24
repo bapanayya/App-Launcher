@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">App Launcher</string>
+    <string name="search_hint">Search apps or categories…</string>
+    <string name="category_all">All</string>
+    <string name="category_social">Social &amp; Chat</string>
+    <string name="category_media">Media &amp; Entertainment</string>
+    <string name="category_work">Work &amp; Tools</string>
+    <string name="category_utilities">System &amp; Tools</string>
+    <string name="category_games">Games</string>
+    <string name="category_finance">Finance</string>
+    <string name="category_other">Other</string>
+</resources>

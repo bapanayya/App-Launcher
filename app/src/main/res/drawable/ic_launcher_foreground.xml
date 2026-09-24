@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Four sleek rounded tiles representing the clean categorized grid -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M34,32h16c2.2,0 4,1.8 4,4v16c0,2.2 -1.8,4 -4,4h-16c-2.2,0 -4,-1.8 -4,-4v-16c0,-2.2 1.8,-4 4,-4z" />
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M58,32h16c2.2,0 4,1.8 4,4v16c0,2.2 -1.8,4 -4,4h-16c-2.2,0 -4,-1.8 -4,-4v-16c0,-2.2 1.8,-4 4,-4z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M34,56h16c2.2,0 4,1.8 4,4v16c0,2.2 -1.8,4 -4,4h-16c-2.2,0 -4,-1.8 -4,-4v-16c0,-2.2 1.8,-4 4,-4z" />
+    <path
+        android:fillColor="#EC4899"
+        android:pathData="M58,56h16c2.2,0 4,1.8 4,4v16c0,2.2 -1.8,4 -4,4h-16c-2.2,0 -4,-1.8 -4,-4v-16c0,-2.2 1.8,-4 4,-4z" />
+</vector>
