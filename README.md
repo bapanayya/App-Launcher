@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="app-icon-512x512.png" width="128" height="128" alt="App Launcher Glossy Icon" style="border-radius: 28px;" />
+</p>
+
 # App Launcher — Ultra-Clean Categorized Android Launcher
 
 An ultra-clean, minimalist Android launcher built with **Jetpack Compose** and **Material 3**. It transforms cluttered multi-page home screens into a sleek, single-screen experience with wallpaper transparency, smart app reminders with voice alarms, and 3 distinct layout modes.
