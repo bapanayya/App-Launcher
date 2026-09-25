@@ -53,8 +53,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: v1.0.0
-          name: "App Launcher Android App v1.0.0 (Official Release)"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.1' }}
+          name: "App Launcher Android App ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.1' }} (Official Release)"
           fail_on_unmatched_files: true
           body: |
             ### 🚀 App Launcher Official Android Application (v1.0.0)
