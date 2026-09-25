@@ -39,8 +39,11 @@ class AppReminderReceiver : BroadcastReceiver() {
         val reminderId = intent.getStringExtra(EXTRA_REMINDER_ID) ?: return
         val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME) ?: ""
         val appName = intent.getStringExtra(EXTRA_APP_NAME) ?: "App"
-        val customVoiceText = intent.getStringExtra(EXTRA_VOICE_TEXT) ?: "You need to open $appName"
+        val rawVoiceText = intent.getStringExtra(EXTRA_VOICE_TEXT) ?: "You need to open $appName"
         val isDaily = intent.getBooleanExtra(EXTRA_IS_DAILY, true)
+
+        // Ensure "on your ... app" is spoken so user immediately identifies the source app
+        val voiceAnnouncement = formatSpokenAnnouncement(rawVoiceText, appName)
 
         // 1. Buzz the alarm (Vibration pattern)
         buzzVibrator(context)
@@ -49,10 +52,10 @@ class AppReminderReceiver : BroadcastReceiver() {
         playAlarmSound(context)
 
         // 3. Speak the voice reminder out loud
-        speakVoiceAnnouncement(context, customVoiceText)
+        speakVoiceAnnouncement(context, voiceAnnouncement)
 
         // 4. Post high-priority Heads-up Notification with direct app launch action
-        showReminderNotification(context, reminderId, packageName, appName, customVoiceText)
+        showReminderNotification(context, reminderId, packageName, appName, voiceAnnouncement)
 
         // 5. If daily reminder, reschedule for next day
         if (isDaily) {
@@ -61,6 +64,20 @@ class AppReminderReceiver : BroadcastReceiver() {
             if (existing != null && existing.isEnabled) {
                 manager.saveReminder(existing)
             }
+        }
+    }
+
+    /**
+     * Appends "on your [AppName] app" to the voice announcement to make it easy
+     * to identify which app the alert belongs to.
+     */
+    private fun formatSpokenAnnouncement(text: String, appName: String): String {
+        val trimmed = text.trim()
+        val appSuffix = "on your $appName app"
+        return when {
+            trimmed.contains(appSuffix, ignoreCase = true) -> trimmed
+            trimmed.contains("on your $appName", ignoreCase = true) -> "$trimmed app"
+            else -> "$trimmed $appSuffix"
         }
     }
 

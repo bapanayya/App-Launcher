@@ -380,41 +380,6 @@ fun UltraCleanHomeScreen(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-
-        // Bottom pill button to open full categorized apps drawer
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = Color.Black.copy(alpha = 0.38f),
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .clickable { onOpenAppDrawer() }
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowUp,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Tap App Launcher to open all categorized apps",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        shadow = Shadow(
-                            color = Color.Black.copy(alpha = 0.8f),
-                            blurRadius = 4f
-                        )
-                    ),
-                    color = Color.White
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
