@@ -13,3 +13,4 @@ captures/
 local.properties
 .kotlin
 *.apk
+*.aab

@@ -30,21 +30,26 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      - name: Build Android APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build Android APK and AAB Bundle
+        run: |
+          ./gradlew assembleDebug --stacktrace
+          ./gradlew bundleRelease --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Upload APK & AAB Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AppLauncher-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: AppLauncher-Release-Assets
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/bundle/release/app-release.aab
 
-      - name: Prepare Release Asset
+      - name: Prepare Release Assets
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk AppLauncher.apk
-          echo "Copied APK to AppLauncher.apk"
+          cp app/build/outputs/bundle/release/app-release.aab AppLauncher.aab
+          echo "Prepared AppLauncher.apk and AppLauncher.aab"
 
-      - name: Create or Update GitHub Release with APK
+      - name: Create or Update GitHub Release with APK & AAB
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
         with:
@@ -52,17 +57,20 @@ jobs:
           name: "App Launcher Android App v1.0.0 (Official Release)"
           fail_on_unmatched_files: true
           body: |
-            ### ?? App Launcher Official Android Application (v1.0.0)
+            ### 🚀 App Launcher Official Android Application (v1.0.0)
             - **Wallpaper Transparency**: Device wallpaper is clearly visible behind the single clean home screen slide with frosted glass styling.
             - **3 Layout Modes**: Switch between **Sections** (categorized cards), **Grid** (4-column grid), and **Minimal List** (clean vertical list with badges).
             - **Single Clean Home Screen**: Zero icon clutter on desktop; contains only App Launcher hub, Settings, Play Store, Gallery, and Bottom Dock.
             - **Auto-Categorization**: Newly installed apps are automatically filed into categories and never clutter the home screen.
             - **App Reminders & Alarms**: Set custom one-time or repeating reminders with buzzer alarms and Text-to-Speech (TTS) voice alerts.
             - **Category Customization**: Create custom categories and reorder categories up and down.
-            - **Direct Download**:
-              - Tap AppLauncher.apk below to download and install directly on your Android phone!
+            - **Google Play Ready**: Fully signed `.aab` (Android App Bundle) with 10,000-day keystore, Target SDK 35, and strict on-device privacy.
+            - **Downloads**:
+              - **AppLauncher.apk**: Direct standalone Android installation APK.
+              - **AppLauncher.aab**: Signed Android App Bundle for Google Play Console distribution.
           files: |
             AppLauncher.apk
+            AppLauncher.aab
           draft: false
           prerelease: false
         env:

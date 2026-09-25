@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - App Launcher</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --border: #334155;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 32px 16px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .effective-date {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      color: #fff;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--accent);
+      padding-left: 12px;
+    }
+    p, ul {
+      margin-bottom: 16px;
+      color: var(--text-muted);
+    }
+    ul {
+      padding-left: 24px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    strong {
+      color: var(--text);
+    }
+    .highlight-card {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+      padding-top: 24px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">100% On-Device Privacy Guaranteed</div>
+      <h1>Privacy Policy for App Launcher</h1>
+      <p class="effective-date">Effective Date: September 25, 2026 | Application Package: com.cleanlauncher.app</p>
+    </header>
+
+    <div class="highlight-card">
+      <p style="margin: 0; color: var(--text);">
+        <strong>Executive Summary:</strong> App Launcher is a privacy-first, ultra-clean Android home launcher. It does <strong>not collect</strong>, <strong>store on remote servers</strong>, <strong>sell</strong>, or <strong>share</strong> any personal data, application usage patterns, device identifiers, or biometric information. All processing occurs 100% locally on your device.
+      </p>
+    </div>
+
+    <h2>1. Information Handling & Zero Data Collection</h2>
+    <p>We respect your fundamental right to digital privacy. Because App Launcher operates completely offline without requiring an account, cloud login, or remote backend server:</p>
+    <ul>
+      <li><strong>Zero Personal Information Collected:</strong> We do not ask for or collect names, email addresses, phone numbers, or account credentials.</li>
+      <li><strong>Zero Analytics & Telemetry:</strong> The application does not integrate Google Analytics for Firebase, Mixpanel, Segment, Flurry, or any third-party behavioral telemetry SDKs.</li>
+      <li><strong>Zero Advertising SDKs:</strong> App Launcher contains no advertisements, banner ads, interstitial trackers, or advertising IDs.</li>
+    </ul>
+
+    <h2>2. Purpose and Usage of Device Permissions</h2>
+    <p>App Launcher requests only the standard permissions strictly required to perform its core responsibilities as an Android home screen launcher:</p>
+    <ul>
+      <li><strong>Package Visibility (QUERY_ALL_PACKAGES):</strong> As an Android Home Screen / App Launcher (<c>android.intent.category.HOME</c>), the app queries the local package manager to discover installed applications so you can categorize, search, filter, and launch them. This package list is read strictly into device memory and is never transmitted off your device.</li>
+      <li><strong>Exact Alarms (SCHEDULE_EXACT_ALARM):</strong> Used solely to deliver timely user-scheduled app reminder notifications and Text-to-Speech voice alerts (e.g. daily routine or attendance reminders). Alarm schedules are stored exclusively in local SharedPreferences.</li>
+      <li><strong>Notifications (POST_NOTIFICATIONS):</strong> Used on Android 13+ (API 33+) to post the reminder notification banner when an alert triggers.</li>
+      <li><strong>Boot Completed (RECEIVE_BOOT_COMPLETED):</strong> Used solely to re-register active user alarms with the Android AlarmManager after your device is restarted.</li>
+      <li><strong>Vibration (VIBRATE):</strong> Used to provide gentle haptic feedback during reminder buzzer events.</li>
+    </ul>
+
+    <h2>3. Local Device Storage</h2>
+    <p>User preferences (such as selected layout mode, custom categories, category ordering, and reminder timestamps) are stored locally in private application sandbox storage (<c>SharedPreferences</c>). When you uninstall the application, all local preferences are completely removed by the Android operating system.</p>
+
+    <h2>4. Children’s Privacy</h2>
+    <p>Our application does not collect any personal information from anyone, including children under the age of 13. The app is completely safe for all audiences.</p>
+
+    <h2>5. Government Non-Affiliation Disclaimer</h2>
+    <p>App Launcher is an independent utility and personalization application developed by The Competitive Edge. It is not affiliated with, endorsed by, or authorized by any governmental agency, department, or official public entity.</p>
+
+    <h2>6. Contact Us</h2>
+    <p>If you have questions, feedback, or concerns regarding this privacy policy or our privacy practices, please contact us:</p>
+    <ul>
+      <li><strong>Publisher:</strong> The Competitive Edge</li>
+      <li><strong>Email:</strong> bapanayyap@gmail.com</li>
+      <li><strong>GitHub:</strong> <a href="https://github.com/bapanayya/App-Launcher" style="color: var(--accent);">https://github.com/bapanayya/App-Launcher</a></li>
+    </ul>
+
+    <footer>
+      &copy; 2026 The Competitive Edge. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>

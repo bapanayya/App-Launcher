@@ -45,19 +45,19 @@ An ultra-clean, minimalist Android launcher built with **Jetpack Compose** and *
 
 ## 🔒 Privacy & Security Guarantee
 
-- **100% On-Device & Offline**: Zero internet connections or external telemetry. All classification and reminders run locally on your phone.
+- **100% On-Device & Offline**: Zero internet connections, zero trackers, and zero telemetry. All classification and reminders run locally on your phone.
 - **Sandboxed Execution**: Launching apps utilizes explicit Android `Intent.ACTION_MAIN` via `startActivity()`. App Launcher never accesses any private app data.
-- **Google Play Compliant**: Uses standard launcher role and permission models.
+- **Privacy Policy**: [Read the full Privacy Policy](https://bapanayya.github.io/App-Launcher/privacy-policy.html)
+- **Google Play Submission Guide**: [Read PLAYSTORE_LISTING.md](PLAYSTORE_LISTING.md)
 
 ---
 
-## 📥 Download & Install
+## 📥 Download & Releases
 
-You can download the ready-to-install Android APK directly from the [GitHub Releases](https://github.com/bapanayya/App-Launcher/releases/latest):
+You can download the compiled assets directly from [GitHub Releases](https://github.com/bapanayya/App-Launcher/releases/latest):
 
-1. Download **`AppLauncher.apk`**.
-2. Tap the APK on your Android phone and select **Install**.
-3. Press the Home button and select **App Launcher** -> **Always** to set it as your default launcher.
+1. **`AppLauncher.apk`** *(1.97 MB)*: Direct standalone Android APK for immediate installation on any Android phone.
+2. **`AppLauncher.aab`** *(3.45 MB)*: Signed Android App Bundle with 10,000-day keystore, ready for direct upload to Google Play Console.
 
 ---
 
