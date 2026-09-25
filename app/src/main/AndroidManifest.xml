@@ -4,6 +4,9 @@
     <!-- Crucial permission to query all installed apps on Android 11+ (API 30+) -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     
+    <!-- Permission to request package uninstallation on Android 8.0+ (API 26+) -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    
     <!-- Permissions for smart app reminders and voice/buzzer alarms -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

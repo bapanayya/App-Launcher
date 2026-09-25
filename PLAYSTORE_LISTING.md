@@ -1,4 +1,4 @@
-﻿# 🚀 Google Play Store Listing & Submission Guide: App Launcher
+# 🚀 Google Play Store Listing & Submission Guide: App Launcher
 
 **App Title**: `App Launcher: Minimal & Clean`  
 **Package Name**: `com.cleanlauncher.app`  
@@ -131,6 +131,14 @@ Google Play Console requires a specific declaration for `QUERY_ALL_PACKAGES`:
    ```
 3. **Video / Demonstration Link (if requested by Play review)**:
    - Point to a short unlisted YouTube video showing the launcher discovering and launching apps from the drawer.
+
+---
+
+## 🗑️ App Uninstallation (REQUEST_DELETE_PACKAGES)
+
+- **Permission**: `android.permission.REQUEST_DELETE_PACKAGES`
+- **Purpose**: Enables the launcher to invoke the native Android system confirmation prompt when the user selects "Uninstall" from an application's long-press options menu.
+- **Google Play Compliance**: `REQUEST_DELETE_PACKAGES` is a standard, fully permitted permission for home screen launchers and device utilities. It cannot perform silent uninstallation—the Android system package installer always displays a confirmation dialog asking the user if they wish to uninstall the app.
 
 ---
 

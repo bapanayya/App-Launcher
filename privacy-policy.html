@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -125,6 +125,7 @@
     <p>App Launcher requests only the standard permissions strictly required to perform its core responsibilities as an Android home screen launcher:</p>
     <ul>
       <li><strong>Package Visibility (QUERY_ALL_PACKAGES):</strong> As an Android Home Screen / App Launcher (<c>android.intent.category.HOME</c>), the app queries the local package manager to discover installed applications so you can categorize, search, filter, and launch them. This package list is read strictly into device memory and is never transmitted off your device.</li>
+      <li><strong>App Uninstallation (REQUEST_DELETE_PACKAGES):</strong> Used strictly to invoke Android's standard system confirmation dialog when you explicitly tap "Uninstall" from an application's options menu. App Launcher cannot delete apps silently and never uninstalls anything without your explicit confirmation.</li>
       <li><strong>Exact Alarms (SCHEDULE_EXACT_ALARM):</strong> Used solely to deliver timely user-scheduled app reminder notifications and Text-to-Speech voice alerts (e.g. daily routine or attendance reminders). Alarm schedules are stored exclusively in local SharedPreferences.</li>
       <li><strong>Notifications (POST_NOTIFICATIONS):</strong> Used on Android 13+ (API 33+) to post the reminder notification banner when an alert triggers.</li>
       <li><strong>Boot Completed (RECEIVE_BOOT_COMPLETED):</strong> Used solely to re-register active user alarms with the Android AlarmManager after your device is restarted.</li>

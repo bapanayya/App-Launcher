@@ -302,11 +302,25 @@ class AppRepository(private val context: Context) {
      * Requests uninstallation of the selected app.
      */
     fun uninstallApp(app: AppItem) {
-        val intent = Intent(Intent.ACTION_DELETE).apply {
-            data = Uri.fromParts("package", app.packageName, null)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        try {
+            val intent = Intent(Intent.ACTION_DELETE).apply {
+                data = Uri.parse("package:${app.packageName}")
+                putExtra(Intent.EXTRA_RETURN_RESULT, true)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback for custom OEM ROMs (MIUI / HyperOS): Open system App Details screen
+            try {
+                val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", app.packageName, null)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(fallbackIntent)
+            } catch (_: Exception) {
+                Toast.makeText(context, "Unable to uninstall ${app.label}", Toast.LENGTH_SHORT).show()
+            }
         }
-        context.startActivity(intent)
     }
 
     /**
