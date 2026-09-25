@@ -288,9 +288,9 @@ fun UltraCleanHomeScreen(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.weight(0.4f))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Center 4-Icon Clean Space Card (Translucent Frosted Glass)
+        // Top 4-Icon Clean Space Card (Translucent Frosted Glass)
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = Color.Black.copy(alpha = 0.38f),
