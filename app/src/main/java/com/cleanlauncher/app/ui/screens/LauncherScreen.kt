@@ -54,6 +54,7 @@ import java.util.UUID
 @Composable
 fun LauncherScreen(
     viewModel: LauncherViewModel,
+    onRequestSetDefaultLauncher: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -130,7 +131,9 @@ fun LauncherScreen(
                             modifier = Modifier.weight(1f)
                         )
                         Button(
-                            onClick = { viewModel.requestSetDefaultLauncher() },
+                            onClick = { 
+                                onRequestSetDefaultLauncher()
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary
                             ),
