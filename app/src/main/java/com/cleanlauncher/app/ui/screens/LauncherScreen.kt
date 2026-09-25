@@ -43,6 +43,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import com.cleanlauncher.app.R
 import com.cleanlauncher.app.data.model.AppCategory
 import com.cleanlauncher.app.data.model.AppItem
 import com.cleanlauncher.app.data.model.AppReminder
@@ -312,20 +314,13 @@ fun UltraCleanHomeScreen(
                             .clickable { onOpenAppDrawer() }
                             .padding(6.dp)
                     ) {
-                        Box(
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher_hub),
+                            contentDescription = "App Launcher",
                             modifier = Modifier
                                 .size(54.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Apps,
-                                contentDescription = "App Launcher",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
+                                .clip(RoundedCornerShape(14.dp))
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "App Launcher",
