@@ -1,4 +1,4 @@
-# 🚀 Google Play Store Listing & Submission Guide: App Launcher
+﻿# ðŸš€ Google Play Store Listing & Submission Guide: App Launcher
 
 **App Title**: `App Launcher: Minimal & Clean`  
 **Package Name**: `com.cleanlauncher.app`  
@@ -12,20 +12,19 @@
 
 ---
 
-## 📝 Release Notes / What's New (Copy-Paste for Play Console Release)
+## ðŸ“ Release Notes / What's New (Copy-Paste for Play Console Release)
 
 ```text
-- Target SDK 36: Fully compliant with Google Play API Level 36 security and performance requirements.
-- Native App Uninstallation: Long-press any app in the drawer to uninstall with instant system confirmation.
-- Refined Home Screen: Shifted top primary apps upward to showcase your wallpaper.
-- Vibrant Glossy Icon: High-resolution 3D glass reflections and vibrant saturated colors.
-- Smart App Reminders: Set one-time or repeating reminders with buzzer alarms and voice alerts.
-- 100% On-Device Privacy: Zero telemetry, zero analytics SDKs, and zero data collection.
+- Target SDK 36: Fully compliant with Google Play API Level 36.
+- Native App Uninstallation: Uninstall apps directly via long-press with confirmation.
+- Refined Home Screen: Shifted top primary apps upward for open wallpaper view.
+- Glossy 3D Icon: Vibrant finish with glass reflections.
+- Smart App Reminders: Set voice alerts and buzzer reminders.
 ```
 
 ---
 
-## 📝 Store Metadata (Ready to Copy-Paste)
+## ðŸ“ Store Metadata (Ready to Copy-Paste)
 
 ### 1. App Title (Max 30 characters)
 ```text
@@ -49,34 +48,34 @@ App Launcher is a modern, ultra-clean, and privacy-first Android home launcher e
 
 Unlike conventional launchers that scatter newly installed apps across endless home screen slides, App Launcher keeps your desktop completely clutter-free. It features an elegant top hub for your essential daily apps, a dedicated bottom dock, and organizes everything else inside an intuitive, categorized app drawer.
 
-🌟 KEY FEATURES:
+ðŸŒŸ KEY FEATURES:
 
-🖼️ 1. Complete Wallpaper & Screen Saver Transparency
-• Your customized wallpaper and screen savers remain 100% visible behind the home screen.
-• Frosted glassmorphic cards with crisp white typography and subtle drop shadows ensure complete text legibility across all wallpapers (bright, dark, or multi-colored).
-• Smooth translucent scrim transitions when opening your categorized app drawer.
+ðŸ–¼ï¸ 1. Complete Wallpaper & Screen Saver Transparency
+â€¢ Your customized wallpaper and screen savers remain 100% visible behind the home screen.
+â€¢ Frosted glassmorphic cards with crisp white typography and subtle drop shadows ensure complete text legibility across all wallpapers (bright, dark, or multi-colored).
+â€¢ Smooth translucent scrim transitions when opening your categorized app drawer.
 
-📑 2. Three Flexible Layout Modes
-• Sections Mode: Categorized continuous scroll with translucent cards, headers, and app counts.
-• Grid Mode: Compact 4-column app grid for quick visual scanning.
-• Minimal List Mode: High-density vertical list with compact icons, bold titles, and category badge chips.
-• Automatically remembers your preferred layout mode across app launches.
+ðŸ“‘ 2. Three Flexible Layout Modes
+â€¢ Sections Mode: Categorized continuous scroll with translucent cards, headers, and app counts.
+â€¢ Grid Mode: Compact 4-column app grid for quick visual scanning.
+â€¢ Minimal List Mode: High-density vertical list with compact icons, bold titles, and category badge chips.
+â€¢ Automatically remembers your preferred layout mode across app launches.
 
-🏷️ 3. Dynamic Category Customization & Reordering
-• Create custom app categories on the fly.
-• Move categories up and down (▲ / ▼) to tailor your preferred viewing order.
-• Reassign any app to any category with an intuitive long-press contextual sheet.
+ðŸ·ï¸ 3. Dynamic Category Customization & Reordering
+â€¢ Create custom app categories on the fly.
+â€¢ Move categories up and down (â–² / â–¼) to tailor your preferred viewing order.
+â€¢ Reassign any app to any category with an intuitive long-press contextual sheet.
 
-⏰ 4. Smart App Reminders with Voice & Buzzer Alerts
-• Never miss important app tasks (e.g. daily attendance, routine check-ins, or scheduled updates).
-• Set one-time or daily repeating reminders for any installed application.
-• Features an exact alarm buzzer accompanied by customizable Text-to-Speech (TTS) voice announcements (e.g. "You Need to Post Attendance on your APFRS app").
-• Automatically reschedules your alarms after device reboots.
+â° 4. Smart App Reminders with Voice & Buzzer Alerts
+â€¢ Never miss important app tasks (e.g. daily attendance, routine check-ins, or scheduled updates).
+â€¢ Set one-time or daily repeating reminders for any installed application.
+â€¢ Features an exact alarm buzzer accompanied by customizable Text-to-Speech (TTS) voice announcements (e.g. "You Need to Post Attendance on your APFRS app").
+â€¢ Automatically reschedules your alarms after device reboots.
 
-🛡️ 5. 100% On-Device Privacy & Zero Data Collection
-• Operates completely offline without requiring cloud logins or remote servers.
-• Zero personal data collected, zero telemetry, and zero tracking SDKs.
-• Zero advertisements: no pop-ups, no banners, and no sponsored clutter.
+ðŸ›¡ï¸ 5. 100% On-Device Privacy & Zero Data Collection
+â€¢ Operates completely offline without requiring cloud logins or remote servers.
+â€¢ Zero personal data collected, zero telemetry, and zero tracking SDKs.
+â€¢ Zero advertisements: no pop-ups, no banners, and no sponsored clutter.
 
 Developed with pride by The Competitive Edge.
 Official Channel: youtube.com/@TheCompetitiveEdge-b4z
@@ -84,7 +83,7 @@ Official Channel: youtube.com/@TheCompetitiveEdge-b4z
 
 ---
 
-## 🎨 Google Play Graphic Assets Location
+## ðŸŽ¨ Google Play Graphic Assets Location
 
 All required store graphics have been generated and are located in your workspace:
 
@@ -99,7 +98,7 @@ All required store graphics have been generated and are located in your workspac
 
 ---
 
-## 📋 Google Play Console: Policy Questionnaire Answers
+## ðŸ“‹ Google Play Console: Policy Questionnaire Answers
 
 When completing **Policy and programs** &rarr; **App content** in Google Play Console:
 
@@ -133,7 +132,7 @@ When completing **Policy and programs** &rarr; **App content** in Google Play Co
 
 ---
 
-## 🔒 Sensitive Permissions Declaration: Package Visibility (QUERY_ALL_PACKAGES)
+## ðŸ”’ Sensitive Permissions Declaration: Package Visibility (QUERY_ALL_PACKAGES)
 
 Google Play Console requires a specific declaration for `QUERY_ALL_PACKAGES`:
 
@@ -148,20 +147,20 @@ Google Play Console requires a specific declaration for `QUERY_ALL_PACKAGES`:
 
 ---
 
-## 🗑️ App Uninstallation (REQUEST_DELETE_PACKAGES)
+## ðŸ—‘ï¸ App Uninstallation (REQUEST_DELETE_PACKAGES)
 
 - **Permission**: `android.permission.REQUEST_DELETE_PACKAGES`
 - **Purpose**: Enables the launcher to invoke the native Android system confirmation prompt when the user selects "Uninstall" from an application's long-press options menu.
-- **Google Play Compliance**: `REQUEST_DELETE_PACKAGES` is a standard, fully permitted permission for home screen launchers and device utilities. It cannot perform silent uninstallation—the Android system package installer always displays a confirmation dialog asking the user if they wish to uninstall the app.
+- **Google Play Compliance**: `REQUEST_DELETE_PACKAGES` is a standard, fully permitted permission for home screen launchers and device utilities. It cannot perform silent uninstallationâ€”the Android system package installer always displays a confirmation dialog asking the user if they wish to uninstall the app.
 
 ---
 
-## 📦 Android App Bundle (.aab) & Keystore Information
+## ðŸ“¦ Android App Bundle (.aab) & Keystore Information
 
 - **Signed AAB Bundle**: `AppLauncher.aab` (3.45 MB, optimized with R8)
 - **Release Keystore File**: `app/upload-keystore.jks`
 - **Keystore Alias**: `cleanlauncher`
 - **Store / Key Password**: `cleanlauncher123`
 - **Validity**: Until **February 10, 2054** (10,000 days)
-- **Target SDK**: `35` (Android 15)
+- **Target SDK**: `36` (Android 16)
 - **Min SDK**: `26` (Android 8.0)

@@ -1,6 +1,5 @@
-﻿- Target SDK 36: Fully compliant with Google Play API Level 36 security and performance requirements.
-- Native App Uninstallation: Long-press any app in the drawer to uninstall with instant system confirmation.
-- Refined Home Screen: Shifted top primary apps upward to showcase your wallpaper.
-- Vibrant Glossy Icon: High-resolution 3D glass reflections and vibrant saturated colors.
-- Smart App Reminders: Set one-time or repeating reminders with buzzer alarms and voice alerts.
-- 100% On-Device Privacy: Zero telemetry, zero analytics SDKs, and zero data collection.
+﻿- Target SDK 36: Fully compliant with Google Play API Level 36.
+- Native App Uninstallation: Uninstall apps directly via long-press with confirmation.
+- Refined Home Screen: Shifted top primary apps upward for open wallpaper view.
+- Glossy 3D Icon: Vibrant finish with glass reflections.
+- Smart App Reminders: Set voice alerts and buzzer reminders.
