@@ -6,8 +6,8 @@
 **Category**: Personalization / Tools  
 **Content Rating**: Everyone (PEGI 3 / IARC 3+)  
 **Privacy Policy URL**: [https://bapanayya.github.io/App-Launcher/privacy-policy.html](https://bapanayya.github.io/App-Launcher/privacy-policy.html)  
-**Version**: `1.0.1` (Version Code: `2`)  
-**Target SDK**: 35 (Android 15 ready)  
+**Version**: `1.0.2` (Version Code: `3`)  
+**Target SDK**: 36 (Google Play Compliant)  
 **Min SDK**: 26 (Android 8.0 Oreo+)  
 
 ---
@@ -15,11 +15,12 @@
 ## 📝 Release Notes / What's New (Copy-Paste for Play Console Release)
 
 ```text
+- Target SDK 36: Fully compliant with Google Play API Level 36 security and performance requirements.
 - Native App Uninstallation: Long-press any app in the drawer to uninstall with instant system confirmation.
 - Refined Home Screen: Shifted top primary apps upward to showcase your wallpaper.
 - Vibrant Glossy Icon: High-resolution 3D glass reflections and vibrant saturated colors.
 - Smart App Reminders: Set one-time or repeating reminders with buzzer alarms and voice alerts.
-- Android 15 Ready: Target SDK 35 with 100% on-device privacy and zero data collection.
+- 100% On-Device Privacy: Zero telemetry, zero analytics SDKs, and zero data collection.
 ```
 
 ---
