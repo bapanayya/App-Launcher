@@ -1,4 +1,4 @@
-package com.cleanlauncher.app.ui
+﻿package com.cleanlauncher.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -83,6 +83,7 @@ class LauncherViewModel(
 
     fun openAppDrawer() {
         _uiState.update { it.copy(isAppDrawerOpen = true) }
+        recomputeFilteredState()
     }
 
     fun closeAppDrawer() {
@@ -113,7 +114,7 @@ class LauncherViewModel(
     fun moveCategoryUp(category: AppCategory) {
         val list = _uiState.value.allCategories.toMutableList()
         val index = list.indexOfFirst { it.id == category.id }
-        if (index > 1) { // 0 is always ALL
+        if (index > 2) { // 0 is ALL, 1 is FREQUENT
             val temp = list[index]
             list[index] = list[index - 1]
             list[index - 1] = temp
@@ -129,7 +130,7 @@ class LauncherViewModel(
     fun moveCategoryDown(category: AppCategory) {
         val list = _uiState.value.allCategories.toMutableList()
         val index = list.indexOfFirst { it.id == category.id }
-        if (index in 1 until list.size - 1) {
+        if (index in 2 until list.size - 1) {
             val temp = list[index]
             list[index] = list[index + 1]
             list[index + 1] = temp
@@ -164,9 +165,10 @@ class LauncherViewModel(
 
     fun moveAppToCategory(app: AppItem, newCategory: AppCategory) {
         viewModelScope.launch {
-            repository.setAppCategory(app.packageName, newCategory)
+            val identifier = if (app.isShortcut) app.id else app.packageName
+            repository.setAppCategory(identifier, newCategory)
             val updatedApps = _uiState.value.allApps.map { item ->
-                if (item.packageName == app.packageName) {
+                if (item.id == app.id) {
                     item.copy(category = newCategory)
                 } else {
                     item
@@ -184,6 +186,7 @@ class LauncherViewModel(
 
     fun launchApp(app: AppItem) {
         repository.launchApp(app)
+        recomputeFilteredState()
     }
 
     fun openAppInfo(app: AppItem) {
@@ -192,6 +195,22 @@ class LauncherViewModel(
 
     fun uninstallApp(app: AppItem) {
         repository.uninstallApp(app)
+        if (app.isShortcut) {
+            loadApps()
+        }
+    }
+
+    fun addWebShortcut(title: String, url: String) {
+        val id = "web_" + java.util.UUID.randomUUID().toString().take(8)
+        repository.saveWebShortcut(
+            id = id,
+            label = title,
+            packageName = "com.cleanlauncher.web",
+            url = url,
+            intentUri = null,
+            iconPath = null
+        )
+        loadApps()
     }
 
     fun clearSearch() {
@@ -212,22 +231,39 @@ class LauncherViewModel(
             app.packageName.lowercase().contains(query)
         }
 
-        // 2. Compute counts for each category from the matching apps
+        // 2. Identify frequent apps (used at least twice a day) in alphabetical order
+        val frequentApps = repository.getFrequentlyUsedApps(queryMatchingApps)
+
+        // 3. Compute counts for each category
         val counts = queryMatchingApps.groupBy { it.category }
             .mapValues { it.value.size }
+            .toMutableMap()
+        
+        counts[AppCategory.FREQUENT] = frequentApps.size
 
-        // 3. Group all matching apps by category sorted according to user custom order
-        val grouped = queryMatchingApps.groupBy { it.category }
+        // 4. Group all matching apps by category: place FREQUENT at the very top
+        val grouped = linkedMapOf<AppCategory, List<AppItem>>()
+        if (frequentApps.isNotEmpty()) {
+            grouped[AppCategory.FREQUENT] = frequentApps
+        }
+
+        val otherGrouped = queryMatchingApps.groupBy { it.category }
             .toSortedMap(compareBy { cat ->
                 val idx = categoryOrder.indexOf(cat.id)
                 if (idx != -1) idx else 999
             })
 
-        // 4. Determine items to display based on selected category
-        val filteredList = if (currentCategory.id == AppCategory.ALL.id) {
-            queryMatchingApps
-        } else {
-            queryMatchingApps.filter { it.category.id == currentCategory.id }
+        for ((cat, apps) in otherGrouped) {
+            if (cat.id != AppCategory.FREQUENT.id) {
+                grouped[cat] = apps
+            }
+        }
+
+        // 5. Determine items to display based on selected category
+        val filteredList = when (currentCategory.id) {
+            AppCategory.ALL.id -> queryMatchingApps
+            AppCategory.FREQUENT.id -> frequentApps
+            else -> queryMatchingApps.filter { it.category.id == currentCategory.id }
         }
 
         _uiState.update {

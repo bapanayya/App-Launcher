@@ -6,7 +6,7 @@
 **Category**: Personalization / Tools  
 **Content Rating**: Everyone (PEGI 3 / IARC 3+)  
 **Privacy Policy URL**: [https://bapanayya.github.io/App-Launcher/privacy-policy.html](https://bapanayya.github.io/App-Launcher/privacy-policy.html)  
-**Version**: `1.0.2` (Version Code: `3`)  
+**Version**: `1.0.3` (Version Code: `4`)  
 **Target SDK**: 36 (Google Play Compliant)  
 **Min SDK**: 26 (Android 8.0 Oreo+)  
 
@@ -15,11 +15,11 @@
 ## ðŸ“ Release Notes / What's New (Copy-Paste for Play Console Release)
 
 ```text
-- Target SDK 36: Fully compliant with Google Play API Level 36.
-- Native App Uninstallation: Uninstall apps directly via long-press with confirmation.
-- Refined Home Screen: Shifted top primary apps upward for open wallpaper view.
-- Glossy 3D Icon: Vibrant finish with glass reflections.
-- Smart App Reminders: Set voice alerts and buzzer reminders.
+- Pinned Web Shortcuts: Webpages saved to home screen are categorized and launchable.
+- Louder Reminders: Boosted buzzer and voice reminder alerts by 200%.
+- Frequent Category: Top section dynamically shows apps used at least twice a day.
+- Native Gallery: Direct link to your device's camera photo album on home screen.
+- Default Browser: Home screen and dock automatically open your default browser.
 ```
 
 ---

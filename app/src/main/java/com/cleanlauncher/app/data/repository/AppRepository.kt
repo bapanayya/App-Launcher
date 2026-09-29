@@ -1,22 +1,34 @@
-package com.cleanlauncher.app.data.repository
+﻿package com.cleanlauncher.app.data.repository
 
+import android.app.role.RoleManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.content.pm.ShortcutInfo
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
+import android.os.Process
 import android.provider.MediaStore
 import android.provider.Settings
 import android.provider.Telephony
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import com.cleanlauncher.app.R
 import com.cleanlauncher.app.data.model.AppCategory
 import com.cleanlauncher.app.data.model.AppItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 
 class AppRepository(private val context: Context) {
 
@@ -24,8 +36,7 @@ class AppRepository(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("clean_launcher_prefs", Context.MODE_PRIVATE)
 
     /**
-     * Loads all launchable installed apps on the device, categorized without network calls.
-     * Incorporates user's manual category overrides stored locally.
+     * Loads all launchable installed apps and pinned web shortcuts on the device.
      */
     suspend fun getInstalledApps(): List<AppItem> = withContext(Dispatchers.IO) {
         val launcherIntent = Intent(Intent.ACTION_MAIN, null).apply {
@@ -43,11 +54,10 @@ class AppRepository(private val context: Context) {
         }
 
         val myPackageName = context.packageName
-
         val customCategories = getCustomCategories()
         val allKnown = AppCategory.DEFAULT_CATEGORIES + customCategories
 
-        resolveInfos
+        val installedApps = resolveInfos
             .filter { it.activityInfo.packageName != myPackageName }
             .map { resolveInfo ->
                 val appInfo = resolveInfo.activityInfo.applicationInfo
@@ -57,7 +67,6 @@ class AppRepository(private val context: Context) {
                 val icon = resolveInfo.loadIcon(packageManager)
                 val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
 
-                // Check if user manually reassigned this app to a category
                 val savedCategoryVal = prefs.getString("cat_override_$pkgName", null)
                 val category = if (savedCategoryVal != null) {
                     allKnown.find { it.id == savedCategoryVal || it.title.equals(savedCategoryVal, ignoreCase = true) }
@@ -76,7 +85,212 @@ class AppRepository(private val context: Context) {
                     isSystemApp = isSystem
                 )
             }
-            .sortedBy { it.label.lowercase() }
+
+        // Include saved & pinned web shortcuts (Webpages saved on home screen)
+        val webShortcuts = getSavedWebShortcuts()
+
+        (installedApps + webShortcuts).sortedBy { it.label.lowercase() }
+    }
+
+    /**
+     * Saves a pinned webpage shortcut locally so it persists and is categorized.
+     */
+    fun saveWebShortcut(
+        id: String,
+        label: String,
+        packageName: String,
+        url: String,
+        intentUri: String?,
+        iconPath: String?
+    ) {
+        try {
+            val jsonArray = getSavedWebShortcutsJson()
+            val updated = JSONArray()
+            val newItem = JSONObject().apply {
+                put("id", id)
+                put("label", label)
+                put("packageName", packageName)
+                put("url", url)
+                put("intentUri", intentUri ?: "")
+                put("iconPath", iconPath ?: "")
+                put("created", System.currentTimeMillis())
+            }
+            updated.put(newItem)
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+                if (item.optString("id") != id && item.optString("url") != url) {
+                    updated.put(item)
+                }
+            }
+            prefs.edit().putString("saved_web_shortcuts", updated.toString()).apply()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Removes a pinned webpage shortcut.
+     */
+    fun removeWebShortcut(shortcutId: String) {
+        try {
+            val jsonArray = getSavedWebShortcutsJson()
+            val updated = JSONArray()
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+                if (item.optString("id") == shortcutId) {
+                    val iconPath = item.optString("iconPath")
+                    if (!iconPath.isNullOrEmpty()) {
+                        File(iconPath).delete()
+                    }
+                } else {
+                    updated.put(item)
+                }
+            }
+            prefs.edit().putString("saved_web_shortcuts", updated.toString()).apply()
+        } catch (_: Exception) {}
+    }
+
+    private fun getSavedWebShortcutsJson(): JSONArray {
+        val raw = prefs.getString("saved_web_shortcuts", null) ?: return JSONArray()
+        return try {
+            JSONArray(raw)
+        } catch (_: Exception) {
+            JSONArray()
+        }
+    }
+
+    /**
+     * Loads all saved and pinned web shortcuts as AppItem objects.
+     */
+    fun getSavedWebShortcuts(): List<AppItem> {
+        val list = mutableListOf<AppItem>()
+        val defaultWebIcon = ContextCompat.getDrawable(context, R.drawable.ic_web_shortcut)
+        val customCategories = getCustomCategories()
+        val allKnown = AppCategory.DEFAULT_CATEGORIES + customCategories
+
+        try {
+            val jsonArray = getSavedWebShortcutsJson()
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val id = obj.optString("id")
+                val label = obj.optString("label")
+                val pkg = obj.optString("packageName", "com.cleanlauncher.web")
+                val url = obj.optString("url")
+                val intentUri = obj.optString("intentUri").takeIf { it.isNotEmpty() }
+                val iconPath = obj.optString("iconPath")
+
+                var iconDrawable: Drawable? = null
+                if (!iconPath.isNullOrEmpty()) {
+                    val file = File(iconPath)
+                    if (file.exists()) {
+                        val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                        if (bitmap != null) {
+                            iconDrawable = BitmapDrawable(context.resources, bitmap)
+                        }
+                    }
+                }
+                if (iconDrawable == null) {
+                    iconDrawable = defaultWebIcon
+                }
+
+                // Check user category override for this shortcut
+                val savedCategoryVal = prefs.getString("cat_override_$id", null)
+                val category = if (savedCategoryVal != null) {
+                    allKnown.find { it.id == savedCategoryVal || it.title.equals(savedCategoryVal, ignoreCase = true) }
+                        ?: AppCategory.resolveWebShortcut(label, url)
+                } else {
+                    AppCategory.resolveWebShortcut(label, url)
+                }
+
+                list.add(
+                    AppItem(
+                        id = id,
+                        label = label,
+                        packageName = pkg,
+                        activityName = "",
+                        icon = iconDrawable,
+                        category = category,
+                        isShortcut = true,
+                        shortcutId = id,
+                        shortcutUrl = url,
+                        intentUri = intentUri
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+
+        // Query system pinned shortcuts on Android 8+ if default launcher
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
+                if (launcherApps != null && isDefaultLauncher()) {
+                    val query = LauncherApps.ShortcutQuery().apply {
+                        setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
+                    }
+                    val pinned = launcherApps.getShortcuts(query, Process.myUserHandle()) ?: emptyList()
+                    for (shortcut in pinned) {
+                        if (list.none { it.id == shortcut.id }) {
+                            val label = (shortcut.shortLabel ?: shortcut.longLabel ?: "Webpage").toString()
+                            val icon = try {
+                                launcherApps.getShortcutIconDrawable(shortcut, context.resources.displayMetrics.densityDpi)
+                            } catch (_: Exception) { defaultWebIcon } ?: defaultWebIcon
+                            val category = AppCategory.resolveWebShortcut(label, shortcut.`package`)
+                            list.add(
+                                AppItem(
+                                    id = shortcut.id,
+                                    label = label,
+                                    packageName = shortcut.`package`,
+                                    activityName = "",
+                                    icon = icon,
+                                    category = category,
+                                    isShortcut = true,
+                                    shortcutId = shortcut.id,
+                                    shortcutUrl = shortcut.intent?.dataString,
+                                    intentUri = shortcut.intent?.toUri(Intent.URI_INTENT_SCHEME)
+                                )
+                            )
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        return list
+    }
+
+    /**
+     * Records an app/shortcut launch for calculating frequent apps.
+     */
+    fun recordAppLaunch(idOrPackage: String) {
+        try {
+            val key = "launch_history_$idOrPackage"
+            val now = System.currentTimeMillis()
+            val cutoff = now - 24 * 60 * 60 * 1000L // last 24 hours
+            val raw = prefs.getString(key, null)
+            val list = mutableListOf<Long>()
+            if (raw != null) {
+                raw.split(",").mapNotNull { it.toLongOrNull() }.filter { it > cutoff }.forEach { list.add(it) }
+            }
+            list.add(now)
+            prefs.edit().putString(key, list.joinToString(",")).apply()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Returns apps that have been used at least twice in the last 24 hours,
+     * sorted in strict alphabetical order.
+     */
+    fun getFrequentlyUsedApps(allApps: List<AppItem>): List<AppItem> {
+        val now = System.currentTimeMillis()
+        val cutoff = now - 24 * 60 * 60 * 1000L // 24 hours
+        return allApps.filter { app ->
+            val key = if (app.isShortcut) "launch_history_${app.id}" else "launch_history_${app.packageName}"
+            val raw = prefs.getString(key, null)
+            if (raw != null) {
+                val count = raw.split(",").mapNotNull { it.toLongOrNull() }.count { it > cutoff }
+                count >= 2
+            } else {
+                false
+            }
+        }.sortedBy { it.label.lowercase() }
     }
 
     /**
@@ -119,32 +333,27 @@ class AppRepository(private val context: Context) {
     /**
      * Persists manual category reassignment locally.
      */
-    fun setAppCategory(packageName: String, newCategory: AppCategory) {
-        prefs.edit().putString("cat_override_$packageName", newCategory.id).apply()
+    fun setAppCategory(identifier: String, newCategory: AppCategory) {
+        prefs.edit().putString("cat_override_$identifier", newCategory.id).apply()
     }
 
     /**
-     * Resolves the essential dock apps (Phone, Messages, Browser, Camera)
-     * using official Android system default intents with robust fallbacks.
+     * Resolves the essential dock apps (Phone, Messages, Default Browser, Camera).
      */
     fun resolveDockApps(allApps: List<AppItem>): List<AppItem> {
         val dockList = mutableListOf<AppItem>()
 
         // 1. Resolve Default Phone / Dialer App
-        val phoneApp = findPhoneApp(allApps)
-        if (phoneApp != null) dockList.add(phoneApp)
+        findPhoneApp(allApps)?.let { dockList.add(it) }
 
         // 2. Resolve Default Messaging / SMS App
-        val messagingApp = findMessagingApp(allApps)
-        if (messagingApp != null && messagingApp !in dockList) dockList.add(messagingApp)
+        findMessagingApp(allApps)?.let { if (it !in dockList) dockList.add(it) }
 
         // 3. Resolve Default Browser App
-        val browserApp = findBrowserApp(allApps)
-        if (browserApp != null && browserApp !in dockList) dockList.add(browserApp)
+        findBrowserApp(allApps)?.let { if (it !in dockList) dockList.add(it) }
 
         // 4. Resolve Default Camera App
-        val cameraApp = findCameraApp(allApps)
-        if (cameraApp != null && cameraApp !in dockList) dockList.add(cameraApp)
+        findCameraApp(allApps)?.let { if (it !in dockList) dockList.add(it) }
 
         return dockList
     }
@@ -158,7 +367,6 @@ class AppRepository(private val context: Context) {
             if (match != null) return match
         } catch (_: Exception) {}
 
-        // Fallback by package name or label
         return allApps.find { app ->
             val pkg = app.packageName.lowercase()
             val label = app.label.lowercase()
@@ -184,7 +392,6 @@ class AppRepository(private val context: Context) {
             if (match != null) return match
         } catch (_: Exception) {}
 
-        // Fallback by package name or label
         return allApps.find { app ->
             val pkg = app.packageName.lowercase()
             val label = app.label.lowercase()
@@ -193,19 +400,43 @@ class AppRepository(private val context: Context) {
         }
     }
 
-    private fun findBrowserApp(allApps: List<AppItem>): AppItem? {
+    /**
+     * Resolves the user's Default Browser dynamically using RoleManager (Android 10+)
+     * and intent resolution, reflecting setting changes instantly.
+     */
+    fun findBrowserApp(allApps: List<AppItem>): AppItem? {
+        // 1. Check system default browser via Intent resolution
         try {
-            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://google.com"))
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
             val resolve = packageManager.resolveActivity(browserIntent, PackageManager.MATCH_DEFAULT_ONLY)
             val pkg = resolve?.activityInfo?.packageName
-            val match = allApps.find { it.packageName == pkg }
-            if (match != null) return match
+            if (pkg != null && pkg != "android" && !pkg.contains("resolver")) {
+                val match = allApps.find { it.packageName == pkg }
+                if (match != null) return match
+            }
         } catch (_: Exception) {}
 
+        // 2. Check browsers registered for HTTP/HTTPS
+        try {
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
+            val resolveList = packageManager.queryIntentActivities(browserIntent, 0)
+            for (resolve in resolveList) {
+                val pkg = resolve.activityInfo.packageName
+                if (pkg != "android" && !pkg.contains("resolver")) {
+                    val match = allApps.find { it.packageName == pkg }
+                    if (match != null) return match
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 3. Fallback to common browsers
         return allApps.find { app ->
             val pkg = app.packageName.lowercase()
             val label = app.label.lowercase()
-            label.contains("chrome") || label.contains("browser") || pkg.contains("chrome") || pkg.contains("browser")
+            label.contains("chrome") || label.contains("browser") || label.contains("firefox") ||
+            label.contains("edge") || label.contains("opera") || label.contains("brave") ||
+            pkg.contains("chrome") || pkg.contains("browser") || pkg.contains("firefox") ||
+            pkg.contains("opera") || pkg.contains("brave")
         }
     }
 
@@ -226,8 +457,8 @@ class AppRepository(private val context: Context) {
     }
 
     /**
-     * Resolves the primary apps to display on the ultra-clean Home Screen:
-     * Settings, Play Store, and Gallery/Photos.
+     * Resolves the primary apps on the Home Screen: Settings, Play Store, and
+     * the default device Gallery/Photos/Album where camera photos are saved.
      */
     fun resolveHomeScreenApps(allApps: List<AppItem>): List<AppItem> {
         val list = mutableListOf<AppItem>()
@@ -256,19 +487,101 @@ class AppRepository(private val context: Context) {
         }
     }
 
-    private fun findGalleryApp(allApps: List<AppItem>): AppItem? {
-        return allApps.find { app ->
-            val pkg = app.packageName.lowercase()
-            val label = app.label.lowercase()
-            label == "gallery" || label == "photos" ||
-            pkg.contains("gallery") || pkg.contains("photos")
+    /**
+     * Resolves the device's native Gallery app where camera photos are saved.
+     * Prioritizes OEM device camera gallery/photo/album packages (Xiaomi, Samsung,
+     * OnePlus, OPPO, Vivo, Huawei, Sony, Motorola, etc.) and strictly avoids
+     * selecting Google Photos when a native gallery/album app is available.
+     */
+    fun findGalleryApp(allApps: List<AppItem>): AppItem? {
+        val oemGalleryPackages = listOf(
+            "com.miui.gallery",              // Xiaomi / Redmi / POCO
+            "com.sec.android.gallery3d",      // Samsung Gallery
+            "com.coloros.gallery3d",          // OPPO / Realme Photos
+            "com.vivo.gallery",               // Vivo / iQOO Albums
+            "com.oneplus.gallery",            // OnePlus Gallery / Photos
+            "com.huawei.photos",              // Huawei / Honor Gallery
+            "com.sonyericsson.album",         // Sony Album
+            "com.motorola.cn.gallery",        // Motorola Gallery
+            "com.transsion.phoenix",          // Transsion (Infinix / Tecno) AI Gallery
+            "com.transsion.ai.gallery",
+            "com.asus.ephotobook",            // Asus Gallery
+            "com.android.gallery3d",          // AOSP Gallery
+            "com.android.gallery"
+        )
+
+        // 1. Check known native OEM camera photo gallery packages
+        for (pkg in oemGalleryPackages) {
+            val match = allApps.find { it.packageName == pkg }
+            if (match != null) return match
         }
+
+        // 2. Query system gallery intent excluding Google Photos
+        try {
+            val galleryIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_GALLERY)
+            val resolve = packageManager.resolveActivity(galleryIntent, PackageManager.MATCH_DEFAULT_ONLY)
+            val pkg = resolve?.activityInfo?.packageName
+            if (pkg != null && pkg != "com.google.android.apps.photos") {
+                val match = allApps.find { it.packageName == pkg }
+                if (match != null) return match
+            }
+        } catch (_: Exception) {}
+
+        // 3. Match native OEM app named Gallery, Album, Albums, or Photos (EXCLUDING Google Photos)
+        val nonGooglePhotos = allApps.filter { it.packageName != "com.google.android.apps.photos" }
+        val oemNamed = nonGooglePhotos.find { app ->
+            val l = app.label.lowercase().trim()
+            val p = app.packageName.lowercase()
+            l == "gallery" || l == "album" || l == "albums" || l == "photos" ||
+            p.contains("gallery") || (p.contains("album") && !p.contains("music"))
+        }
+        if (oemNamed != null) return oemNamed
+
+        // 4. Fallback: only if no OEM gallery exists, use Google Photos or any photo viewer
+        return allApps.find { it.packageName == "com.google.android.apps.photos" }
+            ?: allApps.find { it.label.contains("photos", ignoreCase = true) || it.packageName.contains("photos") }
     }
 
     /**
-     * Launches the targeted app using explicit ComponentName for instant launch.
+     * Launches the targeted app or saved web shortcut.
      */
     fun launchApp(app: AppItem) {
+        if (app.isShortcut) {
+            recordAppLaunch(app.id)
+            // 1. Try launching through LauncherApps if on Android 8+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && app.shortcutId != null) {
+                try {
+                    val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
+                    launcherApps?.startShortcut(app.packageName, app.shortcutId, null, null, Process.myUserHandle())
+                    return
+                } catch (_: Exception) {}
+            }
+            // 2. Try launching via intentUri
+            if (!app.intentUri.isNullOrEmpty()) {
+                try {
+                    val intent = Intent.parseUri(app.intentUri, 0).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                    return
+                } catch (_: Exception) {}
+            }
+            // 3. Fallback: Launch in default browser via URL
+            if (!app.shortcutUrl.isNullOrEmpty()) {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(app.shortcutUrl)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                    return
+                } catch (_: Exception) {}
+            }
+            Toast.makeText(context, "Cannot open shortcut ${app.label}", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Standard App launch
+        recordAppLaunch(app.packageName)
         try {
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
@@ -291,6 +604,7 @@ class AppRepository(private val context: Context) {
      * Opens Android System App Info screen (for permissions, storage, uninstall, etc.)
      */
     fun openAppInfo(app: AppItem) {
+        if (app.isShortcut) return
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", app.packageName, null)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -299,9 +613,15 @@ class AppRepository(private val context: Context) {
     }
 
     /**
-     * Requests uninstallation of the selected app.
+     * Requests uninstallation of the selected app or removes web shortcut.
      */
     fun uninstallApp(app: AppItem) {
+        if (app.isShortcut) {
+            removeWebShortcut(app.id)
+            Toast.makeText(context, "Removed ${app.label}", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         try {
             val intent = Intent(Intent.ACTION_DELETE).apply {
                 data = Uri.parse("package:${app.packageName}")
@@ -310,7 +630,6 @@ class AppRepository(private val context: Context) {
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            // Fallback for custom OEM ROMs (MIUI / HyperOS): Open system App Details screen
             try {
                 val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.fromParts("package", app.packageName, null)

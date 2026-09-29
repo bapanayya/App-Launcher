@@ -1,4 +1,4 @@
-package com.cleanlauncher.app.ui.screens
+﻿package com.cleanlauncher.app.ui.screens
 
 import android.graphics.drawable.Drawable
 import android.widget.Toast
@@ -64,6 +64,7 @@ fun LauncherScreen(
     var selectedAppForMenu by remember { mutableStateOf<AppItem?>(null) }
     var showCreateCategoryDialog by remember { mutableStateOf(false) }
     var showReorderCategoriesDialog by remember { mutableStateOf(false) }
+    var showAddWebShortcutDialog by remember { mutableStateOf(false) }
 
     // Intercept back button:
     // If in drawer, close drawer back to ultra-clean home screen.
@@ -170,9 +171,9 @@ fun LauncherScreen(
                     .fillMaxWidth()
             ) { isDrawerOpen ->
                 if (!isDrawerOpen) {
-                    // ═══════════════════════════════════════════════════════════
+                    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                     // LAYER 1: ULTRA-CLEAN HOME SCREEN (No loose apps, 1 slide)
-                    // ═══════════════════════════════════════════════════════════
+                    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                     UltraCleanHomeScreen(
                         homeApps = state.homeScreenApps,
                         onOpenAppDrawer = { viewModel.openAppDrawer() },
@@ -180,9 +181,9 @@ fun LauncherScreen(
                         onAppLongClick = { selectedAppForMenu = it }
                     )
                 } else {
-                    // ═══════════════════════════════════════════════════════════
+                    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                     // LAYER 2: CATEGORIZED APP DRAWER (All Apps Categorized)
-                    // ═══════════════════════════════════════════════════════════
+                    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
                     CategorizedAppDrawer(
                         state = state,
                         onCloseDrawer = { viewModel.closeAppDrawer() },
@@ -197,6 +198,7 @@ fun LauncherScreen(
                             }
                         },
                         onAddCategoryClick = { showCreateCategoryDialog = true },
+                        onAddWebShortcutClick = { showAddWebShortcutDialog = true },
                         onReorderCategoriesClick = { showReorderCategoriesDialog = true },
                         onAppClick = { viewModel.launchApp(it) },
                         onAppLongClick = { selectedAppForMenu = it }
@@ -237,6 +239,18 @@ fun LauncherScreen(
                 onUninstall = {
                     viewModel.uninstallApp(app)
                     selectedAppForMenu = null
+                }
+            )
+        }
+
+        // Dialog for adding a webpage shortcut
+        if (showAddWebShortcutDialog) {
+            AddWebShortcutDialog(
+                onDismiss = { showAddWebShortcutDialog = false },
+                onConfirm = { title, url ->
+                    viewModel.addWebShortcut(title, url)
+                    showAddWebShortcutDialog = false
+                    Toast.makeText(context, "Saved \"\" to App Launcher", Toast.LENGTH_SHORT).show()
                 }
             )
         }
@@ -390,6 +404,7 @@ fun CategorizedAppDrawer(
     onLayoutSelect: (ViewMode) -> Unit,
     onSelectCategory: (AppCategory) -> Unit,
     onAddCategoryClick: () -> Unit,
+    onAddWebShortcutClick: () -> Unit,
     onReorderCategoriesClick: () -> Unit,
     onAppClick: (AppItem) -> Unit,
     onAppLongClick: (AppItem) -> Unit
@@ -435,6 +450,7 @@ fun CategorizedAppDrawer(
             categoryCounts = state.categoryCounts,
             totalAppsCount = state.allApps.size,
             onAddCategoryClick = onAddCategoryClick,
+            onAddWebShortcutClick = onAddWebShortcutClick,
             onReorderCategoriesClick = onReorderCategoriesClick
         )
 
@@ -451,7 +467,10 @@ fun CategorizedAppDrawer(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else if (state.filteredApps.isEmpty()) {
-                EmptySearchPlaceholder(query = state.searchQuery)
+                EmptySearchPlaceholder(
+                    query = state.searchQuery,
+                    isFrequentCategory = state.selectedCategory.id == AppCategory.FREQUENT.id
+                )
             } else {
                 CategorizedAppsContent(
                     state = state,
@@ -643,6 +662,7 @@ fun CategoryChipsRow(
     categoryCounts: Map<AppCategory, Int>,
     totalAppsCount: Int,
     onAddCategoryClick: () -> Unit,
+    onAddWebShortcutClick: () -> Unit,
     onReorderCategoriesClick: () -> Unit
 ) {
     LazyRow(
@@ -683,7 +703,7 @@ fun CategoryChipsRow(
         item {
             SuggestionChip(
                 onClick = onReorderCategoriesClick,
-                label = { Text("↕ Reorder", style = MaterialTheme.typography.labelMedium) },
+                label = { Text("â†• Reorder", style = MaterialTheme.typography.labelMedium) },
                 shape = RoundedCornerShape(16.dp),
                 colors = SuggestionChipDefaults.suggestionChipColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -696,6 +716,18 @@ fun CategoryChipsRow(
             SuggestionChip(
                 onClick = onAddCategoryClick,
                 label = { Text("+ Category", style = MaterialTheme.typography.labelMedium) },
+                shape = RoundedCornerShape(16.dp),
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            )
+        }
+
+        // Add Webpage Shortcut Chip
+        item {
+            SuggestionChip(
+                onClick = onAddWebShortcutClick,
+                label = { Text("+ Webpage", style = MaterialTheme.typography.labelMedium) },
                 shape = RoundedCornerShape(16.dp),
                 colors = SuggestionChipDefaults.suggestionChipColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -1118,15 +1150,34 @@ fun AppActionBottomSheet(
                     modifier = Modifier.clickable { showCategoryPicker = true }
                 )
 
-                // 3. App Info & Permissions
-                ListItem(
-                    headlineContent = { Text("App Info & Permissions") },
-                    leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
-                    modifier = Modifier.clickable { onOpenInfo() }
-                )
+                // 3. App Info & Permissions (for installed apps)
+                if (!app.isShortcut) {
+                    ListItem(
+                        headlineContent = { Text("App Info & Permissions") },
+                        leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
+                        modifier = Modifier.clickable { onOpenInfo() }
+                    )
+                }
 
-                // 4. Uninstall option
-                if (!app.isSystemApp) {
+                // 4. Uninstall / Remove Web Shortcut option
+                if (app.isShortcut) {
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                "Remove Shortcut",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        modifier = Modifier.clickable { onUninstall() }
+                    )
+                } else if (!app.isSystemApp) {
                     ListItem(
                         headlineContent = {
                             Text(
@@ -1187,7 +1238,7 @@ fun AppActionBottomSheet(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                val assignableCategories = allCategories.filter { it.id != AppCategory.ALL.id }
+                val assignableCategories = allCategories.filter { it.id != AppCategory.ALL.id && it.id != AppCategory.FREQUENT.id }
                 assignableCategories.forEach { category ->
                     val isCurrent = app.category.id == category.id
                     ListItem(
@@ -1346,7 +1397,7 @@ fun AppReminderDialog(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "⏰ ${r.formattedTime} (${if (r.isDaily) "Daily" else "Once"})",
+                                text = "â° ${r.formattedTime} (${if (r.isDaily) "Daily" else "Once"})",
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.weight(1f)
                             )
@@ -1410,7 +1461,7 @@ fun ReorderCategoriesDialog(
                     .fillMaxWidth()
                     .heightIn(max = 400.dp)
             ) {
-                val reorderable = categories.filter { it.id != AppCategory.ALL.id }
+                val reorderable = categories.filter { it.id != AppCategory.ALL.id && it.id != AppCategory.FREQUENT.id }
                 items(reorderable, key = { it.id }) { cat ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1482,24 +1533,92 @@ fun CreateCategoryDialog(
 }
 
 @Composable
-fun EmptySearchPlaceholder(query: String) {
+fun EmptySearchPlaceholder(query: String, isFrequentCategory: Boolean = false) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        ) {
             Icon(
-                imageVector = Icons.Default.SearchOff,
+                imageVector = if (isFrequentCategory) Icons.Default.TrendingUp else Icons.Default.SearchOff,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(48.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "No apps found for \"$query\"",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                text = if (isFrequentCategory) "No Frequent Apps Yet" else "No apps found for \"$query\"",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (isFrequentCategory) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Apps you use at least twice a day will automatically appear here in alphabetical order.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
         }
     }
+}
+
+@Composable
+fun AddWebShortcutDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (title: String, url: String) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Webpage Shortcut") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Webpage Title") },
+                    placeholder = { Text("e.g. Google News, Portal") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("Web Address (URL)") },
+                    placeholder = { Text("https://...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val cleanUrl = if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                        "https://$url"
+                    } else {
+                        url.trim()
+                    }
+                    val cleanTitle = if (title.isNotBlank()) title.trim() else "Webpage"
+                    onConfirm(cleanTitle, cleanUrl)
+                },
+                enabled = url.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

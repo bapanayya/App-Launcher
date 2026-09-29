@@ -1,4 +1,4 @@
-package com.cleanlauncher.app.reminder
+﻿package com.cleanlauncher.app.reminder
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,15 +7,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import androidx.core.app.NotificationCompat
 import java.util.Locale
 
@@ -45,14 +48,32 @@ class AppReminderReceiver : BroadcastReceiver() {
         // Ensure "on your ... app" is spoken so user immediately identifies the source app
         val voiceAnnouncement = formatSpokenAnnouncement(rawVoiceText, appName)
 
+        // Boost alarm stream volume to 100% max for ultra-clear audibility (+200% boost)
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val originalAlarmVol = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 5
+        val maxAlarmVol = audioManager?.getStreamMaxVolume(AudioManager.STREAM_ALARM) ?: 15
+        try {
+            audioManager?.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarmVol, 0)
+        } catch (_: Exception) {}
+
         // 1. Buzz the alarm (Vibration pattern)
         buzzVibrator(context)
 
-        // 2. Play Alarm Sound
+        // 2. Play Alarm Buzzer Sound
         playAlarmSound(context)
 
-        // 3. Speak the voice reminder out loud
-        speakVoiceAnnouncement(context, voiceAnnouncement)
+        // 3. Sequence: After 2 seconds of initial buzzer, speak the voice announcement loudly
+        // at maximum volume on the ALARM stream so speech is crystal clear and not drowned out
+        Handler(Looper.getMainLooper()).postDelayed({
+            speakVoiceAnnouncement(context, voiceAnnouncement) {
+                // Restore original volume after speech ends
+                Handler(Looper.getMainLooper()).postDelayed({
+                    try {
+                        audioManager?.setStreamVolume(AudioManager.STREAM_ALARM, originalAlarmVol, 0)
+                    } catch (_: Exception) {}
+                }, 3000)
+            }
+        }, 2000)
 
         // 4. Post high-priority Heads-up Notification with direct app launch action
         showReminderNotification(context, reminderId, packageName, appName, voiceAnnouncement)
@@ -83,7 +104,7 @@ class AppReminderReceiver : BroadcastReceiver() {
 
     private fun buzzVibrator(context: Context) {
         try {
-            val pattern = longArrayOf(0, 600, 200, 600, 200, 600)
+            val pattern = longArrayOf(0, 700, 200, 700, 200, 700, 200, 700)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
                 vibratorManager?.defaultVibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
@@ -103,7 +124,9 @@ class AppReminderReceiver : BroadcastReceiver() {
     private fun playAlarmSound(context: Context) {
         try {
             val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
             ringtone = RingtoneManager.getRingtone(context, alarmUri)?.apply {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     audioAttributes = AudioAttributes.Builder()
@@ -111,28 +134,59 @@ class AppReminderReceiver : BroadcastReceiver() {
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    volume = 1.0f
+                }
                 play()
             }
 
-            // Stop ringtone after 8 seconds
+            // Lower buzzer after 2.5 seconds so Text-to-Speech voice announcement is clearly heard
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     ringtone?.stop()
                 } catch (_: Exception) {}
-            }, 8000)
+            }, 2500)
         } catch (_: Exception) {}
     }
 
-    private fun speakVoiceAnnouncement(context: Context, text: String) {
+    private fun speakVoiceAnnouncement(context: Context, text: String, onFinished: () -> Unit) {
         tts = TextToSpeech(context.applicationContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.language = Locale.getDefault()
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "app_reminder_tts")
+                    val audioAttributes = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                    tts?.setAudioAttributes(audioAttributes)
+                }
+
+                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {}
+                    override fun onDone(utteranceId: String?) {
+                        onFinished()
+                    }
+                    @Deprecated("Deprecated in Java")
+                    override fun onError(utteranceId: String?) {
+                        onFinished()
+                    }
+                })
+
+                val params = Bundle().apply {
+                    putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+                    putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "app_reminder_tts")
                 } else {
                     @Suppress("DEPRECATION")
                     tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null)
+                    Handler(Looper.getMainLooper()).postDelayed({ onFinished() }, 4000)
                 }
+            } else {
+                onFinished()
             }
         }
     }
@@ -159,7 +213,7 @@ class AppReminderReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // Action Intent to launch the target app directly (e.g. APFRS)
+        // Action Intent to launch the target app directly
         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)?.apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
         }

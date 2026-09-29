@@ -1,4 +1,4 @@
-package com.cleanlauncher.app.data.model
+﻿package com.cleanlauncher.app.data.model
 
 import android.content.pm.ApplicationInfo
 import android.os.Build
@@ -11,16 +11,17 @@ data class AppCategory(
 ) {
     companion object {
         val ALL = AppCategory("all", "All", 0)
-        val COMMUNICATION = AppCategory("communication", "Social & Chat", 1)
-        val MEDIA = AppCategory("media", "Media & Entertainment", 2)
-        val PRODUCTIVITY = AppCategory("productivity", "Work & Study", 3)
-        val UTILITIES = AppCategory("utilities", "System & Tools", 4)
-        val FINANCE = AppCategory("finance", "Finance & Shopping", 5)
-        val GAMES = AppCategory("games", "Games", 6)
-        val OTHER = AppCategory("other", "Other Apps", 7)
+        val FREQUENT = AppCategory("frequent", "Frequent", 1)
+        val COMMUNICATION = AppCategory("communication", "Social & Chat", 2)
+        val MEDIA = AppCategory("media", "Media & Entertainment", 3)
+        val PRODUCTIVITY = AppCategory("productivity", "Work & Study", 4)
+        val UTILITIES = AppCategory("utilities", "System & Tools", 5)
+        val FINANCE = AppCategory("finance", "Finance & Shopping", 6)
+        val GAMES = AppCategory("games", "Games", 7)
+        val OTHER = AppCategory("other", "Other Apps", 8)
 
         val DEFAULT_CATEGORIES = listOf(
-            ALL, COMMUNICATION, MEDIA, PRODUCTIVITY, UTILITIES, FINANCE, GAMES, OTHER
+            ALL, FREQUENT, COMMUNICATION, MEDIA, PRODUCTIVITY, UTILITIES, FINANCE, GAMES, OTHER
         )
 
         fun createCustom(title: String): AppCategory {
@@ -65,6 +66,22 @@ data class AppCategory(
                 text.containsAny("bank", "pay", "wallet", "paypal", "crypto", "finance", "money", "amazon", "ebay", "shop", "cart", "store") -> FINANCE
                 text.containsAny("settings", "tool", "calc", "clock", "timer", "files", "manager", "browser", "chrome", "firefox", "cleaner", "wifi", "bluetooth", "security") -> UTILITIES
                 else -> OTHER
+            }
+        }
+
+        /**
+         * Resolves the category for a pinned webpage shortcut based on title and URL.
+         */
+        fun resolveWebShortcut(label: String, url: String): AppCategory {
+            val text = "${label.lowercase()} ${url.lowercase()}"
+            return when {
+                text.containsAny("game", "play", "puzzle", "arcade", "chess", "quiz") -> GAMES
+                text.containsAny("whatsapp", "telegram", "signal", "discord", "messenger", "twitter", "x.com", "instagram", "facebook", "reddit", "linkedin", "thread", "chat", "forum") -> COMMUNICATION
+                text.containsAny("spotify", "youtube", "music", "netflix", "prime", "podcast", "stream", "video", "sound", "photo", "flickr", "pinterest") -> MEDIA
+                text.containsAny("mail", "gmail", "drive", "docs", "sheets", "calendar", "notion", "github", "jira", "news", "times", "wiki", "blog", "portal", "edu", "gov", "ac.in", "gov.in", "medium") -> PRODUCTIVITY
+                text.containsAny("bank", "pay", "wallet", "paypal", "crypto", "finance", "money", "amazon", "flipkart", "ebay", "shop", "cart", "store", "market", "trade") -> FINANCE
+                text.containsAny("tool", "calc", "timer", "search", "google", "translate", "weather", "map", "speed", "converter") -> UTILITIES
+                else -> PRODUCTIVITY
             }
         }
 
