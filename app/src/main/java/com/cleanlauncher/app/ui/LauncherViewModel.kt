@@ -34,7 +34,8 @@ data class LauncherUiState(
     val homeScreenApps: List<AppItem> = emptyList(),
     val isAppDrawerOpen: Boolean = false,
     val isDefaultLauncher: Boolean = true,
-    val isDefaultBannerDismissed: Boolean = false
+    val isDefaultBannerDismissed: Boolean = false,
+    val allReminders: List<AppReminder> = emptyList()
 ) {
     val shouldShowDefaultBanner: Boolean
         get() = !isDefaultLauncher && !isDefaultBannerDismissed
@@ -54,7 +55,7 @@ class LauncherViewModel(
         } catch (_: Exception) {
             ViewMode.SECTIONS
         }
-        _uiState.update { it.copy(viewMode = savedMode) }
+        _uiState.update { it.copy(viewMode = savedMode, allReminders = reminderManager.getAllReminders()) }
         loadApps()
     }
 
@@ -143,14 +144,16 @@ class LauncherViewModel(
     // --- App Reminders and Alarms ---
     fun saveReminder(reminder: AppReminder) {
         reminderManager.saveReminder(reminder)
+        _uiState.update { it.copy(allReminders = reminderManager.getAllReminders()) }
     }
 
     fun deleteReminder(reminderId: String) {
         reminderManager.deleteReminder(reminderId)
+        _uiState.update { it.copy(allReminders = reminderManager.getAllReminders()) }
     }
 
     fun getRemindersForApp(packageName: String): List<AppReminder> {
-        return reminderManager.getRemindersForApp(packageName)
+        return _uiState.value.allReminders.filter { it.packageName == packageName }
     }
 
     fun onSearchQueryChanged(query: String) {

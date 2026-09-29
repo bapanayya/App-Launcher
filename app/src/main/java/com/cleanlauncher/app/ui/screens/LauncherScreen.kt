@@ -1,4 +1,4 @@
-﻿package com.cleanlauncher.app.ui.screens
+package com.cleanlauncher.app.ui.screens
 
 import android.graphics.drawable.Drawable
 import android.widget.Toast
@@ -213,7 +213,7 @@ fun LauncherScreen(
             AppActionBottomSheet(
                 app = app,
                 allCategories = state.allCategories,
-                reminders = viewModel.getRemindersForApp(app.packageName),
+                reminders = state.allReminders.filter { it.packageName == (if (app.isShortcut) app.id else app.packageName) },
                 onDismiss = { selectedAppForMenu = null },
                 onMoveCategory = { newCategory ->
                     viewModel.moveAppToCategory(app, newCategory)
@@ -450,7 +450,6 @@ fun CategorizedAppDrawer(
             categoryCounts = state.categoryCounts,
             totalAppsCount = state.allApps.size,
             onAddCategoryClick = onAddCategoryClick,
-            onAddWebShortcutClick = onAddWebShortcutClick,
             onReorderCategoriesClick = onReorderCategoriesClick
         )
 
@@ -469,13 +468,15 @@ fun CategorizedAppDrawer(
             } else if (state.filteredApps.isEmpty()) {
                 EmptySearchPlaceholder(
                     query = state.searchQuery,
-                    isFrequentCategory = state.selectedCategory.id == AppCategory.FREQUENT.id
+                    selectedCategory = state.selectedCategory,
+                    onAddWebShortcutClick = onAddWebShortcutClick
                 )
             } else {
                 CategorizedAppsContent(
                     state = state,
                     onAppClick = onAppClick,
-                    onAppLongClick = onAppLongClick
+                    onAppLongClick = onAppLongClick,
+                    onAddWebShortcutClick = onAddWebShortcutClick
                 )
             }
         }
@@ -662,7 +663,6 @@ fun CategoryChipsRow(
     categoryCounts: Map<AppCategory, Int>,
     totalAppsCount: Int,
     onAddCategoryClick: () -> Unit,
-    onAddWebShortcutClick: () -> Unit,
     onReorderCategoriesClick: () -> Unit
 ) {
     LazyRow(
@@ -677,7 +677,7 @@ fun CategoryChipsRow(
                 categoryCounts[category] ?: 0
             }
 
-            if (count > 0 || category.id == AppCategory.ALL.id || category.isCustom) {
+            if (count > 0 || category.id == AppCategory.ALL.id || category.id == AppCategory.WEBPAGES.id || category.id == AppCategory.FREQUENT.id || category.isCustom) {
                 val isSelected = selectedCategory.id == category.id
 
                 FilterChip(
@@ -703,7 +703,14 @@ fun CategoryChipsRow(
         item {
             SuggestionChip(
                 onClick = onReorderCategoriesClick,
-                label = { Text("â†• Reorder", style = MaterialTheme.typography.labelMedium) },
+                label = { Text("Reorder", style = MaterialTheme.typography.labelMedium) },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.SwapVert,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
                 shape = RoundedCornerShape(16.dp),
                 colors = SuggestionChipDefaults.suggestionChipColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -723,17 +730,7 @@ fun CategoryChipsRow(
             )
         }
 
-        // Add Webpage Shortcut Chip
-        item {
-            SuggestionChip(
-                onClick = onAddWebShortcutClick,
-                label = { Text("+ Webpage", style = MaterialTheme.typography.labelMedium) },
-                shape = RoundedCornerShape(16.dp),
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
-            )
-        }
+
     }
 }
 
@@ -741,76 +738,123 @@ fun CategoryChipsRow(
 fun CategorizedAppsContent(
     state: LauncherUiState,
     onAppClick: (AppItem) -> Unit,
-    onAppLongClick: (AppItem) -> Unit
+    onAppLongClick: (AppItem) -> Unit,
+    onAddWebShortcutClick: () -> Unit = {}
 ) {
-    when (state.viewMode) {
-        ViewMode.SECTIONS -> {
-            if (state.selectedCategory.id != AppCategory.ALL.id || state.searchQuery.isNotEmpty()) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
+    Column(modifier = Modifier.fillMaxSize()) {
+        // If viewing Webpages category, render "+ Add New Webpage" card at top
+        if (state.selectedCategory.id == AppCategory.WEBPAGES.id) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onAddWebShortcutClick() }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(state.filteredApps, key = { it.id }) { app ->
-                        AppGridItem(
-                            app = app,
-                            onClick = { onAppClick(app) },
-                            onLongClick = { onAppLongClick(app) }
+                    Icon(
+                        imageVector = Icons.Default.AddCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "+ Add New Webpage",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "Save websites or portals here for 1-tap launch",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
                         )
                     }
                 }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    state.appsByCategory.forEach { (category, apps) ->
-                        if (apps.isNotEmpty()) {
-                            item(key = category.id) {
-                                CategorySection(
-                                    category = category,
-                                    apps = apps,
-                                    onAppClick = onAppClick,
-                                    onAppLongClick = onAppLongClick
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            when (state.viewMode) {
+                ViewMode.SECTIONS -> {
+                    if (state.selectedCategory.id != AppCategory.ALL.id || state.searchQuery.isNotEmpty()) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(4),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(state.filteredApps, key = { it.id }) { app ->
+                                AppGridItem(
+                                    app = app,
+                                    onClick = { onAppClick(app) },
+                                    onLongClick = { onAppLongClick(app) }
                                 )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            state.appsByCategory.forEach { (category, apps) ->
+                                if (apps.isNotEmpty() || category.id == AppCategory.WEBPAGES.id) {
+                                    item(key = category.id) {
+                                        CategorySection(
+                                            category = category,
+                                            apps = apps,
+                                            onAppClick = onAppClick,
+                                            onAppLongClick = onAppLongClick,
+                                            onAddWebShortcutClick = onAddWebShortcutClick
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
-        }
-        ViewMode.GRID -> {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(state.filteredApps, key = { it.id }) { app ->
-                    AppGridItem(
-                        app = app,
-                        onClick = { onAppClick(app) },
-                        onLongClick = { onAppLongClick(app) }
-                    )
+                ViewMode.GRID -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(state.filteredApps, key = { it.id }) { app ->
+                            AppGridItem(
+                                app = app,
+                                onClick = { onAppClick(app) },
+                                onLongClick = { onAppLongClick(app) }
+                            )
+                        }
+                    }
                 }
-            }
-        }
-        ViewMode.MINIMAL_LIST -> {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(state.filteredApps, key = { it.id }) { app ->
-                    MinimalAppListItem(
-                        app = app,
-                        onClick = { onAppClick(app) },
-                        onLongClick = { onAppLongClick(app) }
-                    )
+                ViewMode.MINIMAL_LIST -> {
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(state.filteredApps, key = { it.id }) { app ->
+                            MinimalAppListItem(
+                                app = app,
+                                onClick = { onAppClick(app) },
+                                onLongClick = { onAppLongClick(app) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -895,7 +939,8 @@ fun CategorySection(
     category: AppCategory,
     apps: List<AppItem>,
     onAppClick: (AppItem) -> Unit,
-    onAppLongClick: (AppItem) -> Unit
+    onAppLongClick: (AppItem) -> Unit,
+    onAddWebShortcutClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -908,17 +953,45 @@ fun CategorySection(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
+            if (category.id == AppCategory.FREQUENT.id) {
+                Icon(
+                    imageVector = Icons.Default.TrendingUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            } else if (category.id == AppCategory.WEBPAGES.id) {
+                Icon(
+                    imageVector = Icons.Default.Language,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+
             Text(
                 text = category.title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = "${apps.size} apps",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
+
+            if (category.id == AppCategory.WEBPAGES.id) {
+                TextButton(
+                    onClick = onAddWebShortcutClick,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text("+ Add Webpage", style = MaterialTheme.typography.labelSmall)
+                }
+            } else {
+                Text(
+                    text = "${apps.size} ${if (apps.size == 1) "app" else "apps"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -1313,12 +1386,13 @@ fun AppReminderDialog(
     var minuteText by remember { mutableStateOf("00") }
     var isDaily by remember { mutableStateOf(true) }
     var voiceText by remember { mutableStateOf("You Need to Post Attendance") }
+    var editingReminderId by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Alert for ${app.label}",
+                text = if (editingReminderId != null) "Edit Alert for ${app.label}" else "Alert for ${app.label}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -1330,12 +1404,34 @@ fun AppReminderDialog(
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Time input row (24h format: HH : MM)
-                Text(
-                    text = "Time (24-Hour Format)",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                // Time input row header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Time (24-Hour Format)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (editingReminderId != null) {
+                        TextButton(
+                            onClick = {
+                                editingReminderId = null
+                                hourText = "09"
+                                minuteText = "00"
+                                isDaily = true
+                                voiceText = "You Need to Post Attendance"
+                            },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("Cancel Edit", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
+                // Time input fields (HH : MM)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
@@ -1387,24 +1483,56 @@ fun AppReminderDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // List existing reminders with delete option
+                // List existing reminders with Edit and Delete options
                 if (existingReminders.isNotEmpty()) {
                     HorizontalDivider()
-                    Text("Active Alerts:", style = MaterialTheme.typography.labelSmall)
+                    Text("Active Alerts:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     existingReminders.forEach { r ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "â° ${r.formattedTime} (${if (r.isDaily) "Daily" else "Once"})",
+                                text = "${r.formattedTime} (${if (r.isDaily) "Daily" else "Once"})",
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.weight(1f)
                             )
-                            IconButton(onClick = { onDeleteReminder(r.id) }) {
+                            IconButton(
+                                onClick = {
+                                    editingReminderId = r.id
+                                    hourText = String.format("%02d", r.hour)
+                                    minuteText = String.format("%02d", r.minute)
+                                    isDaily = r.isDaily
+                                    voiceText = r.customVoiceText
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Edit Alert",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    if (editingReminderId == r.id) {
+                                        editingReminderId = null
+                                    }
+                                    onDeleteReminder(r.id)
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
                                 Icon(
                                     Icons.Default.Delete,
-                                    contentDescription = "Delete",
+                                    contentDescription = "Delete Alert",
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -1420,7 +1548,7 @@ fun AppReminderDialog(
                     val h = hourText.toIntOrNull()?.coerceIn(0, 23) ?: 9
                     val m = minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0
                     val reminder = AppReminder(
-                        id = UUID.randomUUID().toString(),
+                        id = editingReminderId ?: UUID.randomUUID().toString(),
                         packageName = app.packageName,
                         appName = app.label,
                         hour = h,
@@ -1429,9 +1557,10 @@ fun AppReminderDialog(
                         customVoiceText = if (voiceText.isNotBlank()) voiceText.trim() else "You need to open ${app.label}"
                     )
                     onSaveReminder(reminder)
+                    editingReminderId = null
                 }
             ) {
-                Text("Set Alarm")
+                Text(if (editingReminderId != null) "Update Alarm" else "Set Alarm")
             }
         },
         dismissButton = {
@@ -1442,9 +1571,6 @@ fun AppReminderDialog(
     )
 }
 
-/**
- * Dialog to reorder categories up and down.
- */
 @Composable
 fun ReorderCategoriesDialog(
     categories: List<AppCategory>,
@@ -1533,7 +1659,14 @@ fun CreateCategoryDialog(
 }
 
 @Composable
-fun EmptySearchPlaceholder(query: String, isFrequentCategory: Boolean = false) {
+fun EmptySearchPlaceholder(
+    query: String,
+    selectedCategory: AppCategory = AppCategory.ALL,
+    onAddWebShortcutClick: () -> Unit = {}
+) {
+    val isFrequentCategory = selectedCategory.id == AppCategory.FREQUENT.id
+    val isWebpagesCategory = selectedCategory.id == AppCategory.WEBPAGES.id
+
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -1543,26 +1676,55 @@ fun EmptySearchPlaceholder(query: String, isFrequentCategory: Boolean = false) {
             modifier = Modifier.padding(horizontal = 32.dp)
         ) {
             Icon(
-                imageVector = if (isFrequentCategory) Icons.Default.TrendingUp else Icons.Default.SearchOff,
+                imageVector = when {
+                    isFrequentCategory -> Icons.Default.TrendingUp
+                    isWebpagesCategory -> Icons.Default.Language
+                    else -> Icons.Default.SearchOff
+                },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = if (isFrequentCategory) "No Frequent Apps Yet" else "No apps found for \"$query\"",
+                text = when {
+                    isFrequentCategory -> "No Frequent Apps Yet"
+                    isWebpagesCategory -> "No Webpages Saved"
+                    query.isNotBlank() -> "No apps found for \"$query\""
+                    else -> "No apps in this category"
+                },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.height(6.dp))
             if (isFrequentCategory) {
-                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "Apps you use at least twice a day will automatically appear here in alphabetical order.",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
+            } else if (isWebpagesCategory) {
+                Text(
+                    text = "Save your favorite websites and portals here for quick 1-tap access.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                FilledTonalButton(
+                    onClick = onAddWebShortcutClick,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Add Webpage")
+                }
             }
         }
     }

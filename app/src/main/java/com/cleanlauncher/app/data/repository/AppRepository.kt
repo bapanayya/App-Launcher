@@ -314,7 +314,7 @@ class AppRepository(private val context: Context) {
 
     fun getAllCategories(): List<AppCategory> {
         val baseList = AppCategory.DEFAULT_CATEGORIES + getCustomCategories()
-        val orderString = prefs.getString("categories_display_order", null)
+        val orderString = prefs.getString("categories_display_order_v2", null)
         if (orderString != null) {
             val orderIds = orderString.split(",")
             val map = baseList.associateBy { it.id }
@@ -327,7 +327,7 @@ class AppRepository(private val context: Context) {
 
     fun saveCategoryOrder(order: List<AppCategory>) {
         val str = order.joinToString(",") { it.id }
-        prefs.edit().putString("categories_display_order", str).apply()
+        prefs.edit().putString("categories_display_order_v2", str).apply()
     }
 
     /**

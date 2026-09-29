@@ -47,33 +47,43 @@ class AppReminderReceiver : BroadcastReceiver() {
 
         // Ensure "on your ... app" is spoken so user immediately identifies the source app
         val voiceAnnouncement = formatSpokenAnnouncement(rawVoiceText, appName)
+        val repeatedAnnouncement = "Repeating alert: $voiceAnnouncement"
 
-        // Boost alarm stream volume to 100% max for ultra-clear audibility (+200% boost)
+        // 200% Volume Boost: Set STREAM_ALARM, STREAM_MUSIC, and STREAM_NOTIFICATION to 100% max volume
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         val originalAlarmVol = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 5
-        val maxAlarmVol = audioManager?.getStreamMaxVolume(AudioManager.STREAM_ALARM) ?: 15
+        val originalMusicVol = audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 5
+        val originalNotifVol = audioManager?.getStreamVolume(AudioManager.STREAM_NOTIFICATION) ?: 5
+
         try {
-            audioManager?.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarmVol, 0)
+            audioManager?.let { am ->
+                am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0)
+                am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, am.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION), 0)
+            }
         } catch (_: Exception) {}
 
         // 1. Buzz the alarm (Vibration pattern)
         buzzVibrator(context)
 
-        // 2. Play Alarm Buzzer Sound
+        // 2. Play Alarm Buzzer Sound for 2.5 seconds first
         playAlarmSound(context)
 
-        // 3. Sequence: After 2 seconds of initial buzzer, speak the voice announcement loudly
-        // at maximum volume on the ALARM stream so speech is crystal clear and not drowned out
+        // 3. Audio Sequence: Speak voice alert TWICE with a chime in between
         Handler(Looper.getMainLooper()).postDelayed({
-            speakVoiceAnnouncement(context, voiceAnnouncement) {
-                // Restore original volume after speech ends
+            speakDualVoiceAnnouncement(context, voiceAnnouncement, repeatedAnnouncement) {
+                // Restore original stream volumes after speech ends
                 Handler(Looper.getMainLooper()).postDelayed({
                     try {
-                        audioManager?.setStreamVolume(AudioManager.STREAM_ALARM, originalAlarmVol, 0)
+                        audioManager?.let { am ->
+                            am.setStreamVolume(AudioManager.STREAM_ALARM, originalAlarmVol, 0)
+                            am.setStreamVolume(AudioManager.STREAM_MUSIC, originalMusicVol, 0)
+                            am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, originalNotifVol, 0)
+                        }
                     } catch (_: Exception) {}
                 }, 3000)
             }
-        }, 2000)
+        }, 2500)
 
         // 4. Post high-priority Heads-up Notification with direct app launch action
         showReminderNotification(context, reminderId, packageName, appName, voiceAnnouncement)
@@ -149,7 +159,27 @@ class AppReminderReceiver : BroadcastReceiver() {
         } catch (_: Exception) {}
     }
 
-    private fun speakVoiceAnnouncement(context: Context, text: String, onFinished: () -> Unit) {
+    private fun playChimeSound(context: Context) {
+        try {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            RingtoneManager.getRingtone(context, uri)?.apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    audioAttributes = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                }
+                play()
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun speakDualVoiceAnnouncement(
+        context: Context,
+        firstText: String,
+        secondText: String,
+        onFinished: () -> Unit
+    ) {
         tts = TextToSpeech(context.applicationContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.language = Locale.getDefault()
@@ -162,28 +192,50 @@ class AppReminderReceiver : BroadcastReceiver() {
                     tts?.setAudioAttributes(audioAttributes)
                 }
 
+                val params = Bundle().apply {
+                    putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+                    putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
+                }
+
+                var utteranceCount = 0
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
                     override fun onDone(utteranceId: String?) {
-                        onFinished()
+                        utteranceCount++
+                        if (utteranceCount == 1) {
+                            // First announcement done, short pause with chime, then announce second time
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                playChimeSound(context)
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                        tts?.speak(secondText, TextToSpeech.QUEUE_FLUSH, params, "tts_utterance_2")
+                                    } else {
+                                        @Suppress("DEPRECATION")
+                                        tts?.speak(secondText, TextToSpeech.QUEUE_FLUSH, null)
+                                    }
+                                }, 1000)
+                            }, 500)
+                        } else if (utteranceCount >= 2) {
+                            onFinished()
+                        }
                     }
+
                     @Deprecated("Deprecated in Java")
                     override fun onError(utteranceId: String?) {
                         onFinished()
                     }
                 })
 
-                val params = Bundle().apply {
-                    putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
-                    putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
-                }
-
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "app_reminder_tts")
+                    tts?.speak(firstText, TextToSpeech.QUEUE_FLUSH, params, "tts_utterance_1")
                 } else {
                     @Suppress("DEPRECATION")
-                    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null)
-                    Handler(Looper.getMainLooper()).postDelayed({ onFinished() }, 4000)
+                    tts?.speak(firstText, TextToSpeech.QUEUE_FLUSH, null)
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        playChimeSound(context)
+                        tts?.speak(secondText, TextToSpeech.QUEUE_FLUSH, null)
+                        Handler(Looper.getMainLooper()).postDelayed({ onFinished() }, 5000)
+                    }, 4000)
                 }
             } else {
                 onFinished()

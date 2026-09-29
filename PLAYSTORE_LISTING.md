@@ -1,4 +1,4 @@
-﻿# ðŸš€ Google Play Store Listing & Submission Guide: App Launcher
+# ðŸš€ Google Play Store Listing & Submission Guide: App Launcher
 
 **App Title**: `App Launcher: Minimal & Clean`  
 **Package Name**: `com.cleanlauncher.app`  
@@ -6,7 +6,7 @@
 **Category**: Personalization / Tools  
 **Content Rating**: Everyone (PEGI 3 / IARC 3+)  
 **Privacy Policy URL**: [https://bapanayya.github.io/App-Launcher/privacy-policy.html](https://bapanayya.github.io/App-Launcher/privacy-policy.html)  
-**Version**: `1.0.3` (Version Code: `4`)  
+**Version**: `1.0.4` (Version Code: `5`)  
 **Target SDK**: 36 (Google Play Compliant)  
 **Min SDK**: 26 (Android 8.0 Oreo+)  
 
@@ -15,11 +15,11 @@
 ## ðŸ“ Release Notes / What's New (Copy-Paste for Play Console Release)
 
 ```text
-- Pinned Web Shortcuts: Webpages saved to home screen are categorized and launchable.
-- Louder Reminders: Boosted buzzer and voice reminder alerts by 200%.
-- Frequent Category: Top section dynamically shows apps used at least twice a day.
-- Native Gallery: Direct link to your device's camera photo album on home screen.
-- Default Browser: Home screen and dock automatically open your default browser.
+- Edit App Alerts: Easily edit time, repeat mode, and voice message for alarms.
+- Instant Reactivity: Alarm creation, edits, and deletions reflect immediately.
+- Boosted Buzzer & Voice: Extra-loud alerts with 2x voice announcements.
+- Clean Alert UI: Polished Material vector icons across all reminder screens.
+- 15 Categories: Frequent, Webpages, Communication, Social Media, Entertainment, Games, Shopping, Banking & Payments, Productivity, Utilities, Education, Lifestyle, Health, Travel, Others.
 ```
 
 ---
