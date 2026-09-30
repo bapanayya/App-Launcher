@@ -6,7 +6,7 @@
 **Category**: Personalization / Tools  
 **Content Rating**: Everyone (PEGI 3 / IARC 3+)  
 **Privacy Policy URL**: [https://bapanayya.github.io/App-Launcher/privacy-policy.html](https://bapanayya.github.io/App-Launcher/privacy-policy.html)  
-**Version**: `1.0.4` (Version Code: `5`)  
+**Version**: `1.0.5` (Version Code: `6`)  
 **Target SDK**: 36 (Google Play Compliant)  
 **Min SDK**: 26 (Android 8.0 Oreo+)  
 
@@ -15,11 +15,10 @@
 ## ðŸ“ Release Notes / What's New (Copy-Paste for Play Console Release)
 
 ```text
-- Edit App Alerts: Easily edit time, repeat mode, and voice message for alarms.
-- Instant Reactivity: Alarm creation, edits, and deletions reflect immediately.
-- Boosted Buzzer & Voice: Extra-loud alerts with 2x voice announcements.
-- Clean Alert UI: Polished Material vector icons across all reminder screens.
-- 15 Categories: Frequent, Webpages, Communication, Social Media, Entertainment, Games, Shopping, Banking & Payments, Productivity, Utilities, Education, Lifestyle, Health, Travel, Others.
+- Performance Boost: Fixed app launch lag and hanging; instantaneous app opening with clean task resuming.
+- Smooth App Switching: Seamlessly return to home screen without flickering, reloading, or UI delays.
+- Rearranged Categories: Perfect 14-category classification matching your daily workflow from Communication to Webpages.
+- Pre-cached App Icons: Silky smooth 60/120fps scrolling across all categorized sections and grids.
 ```
 
 ---

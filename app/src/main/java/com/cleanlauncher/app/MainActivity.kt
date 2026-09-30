@@ -122,8 +122,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh apps list and check default status
-        viewModel.loadApps()
+        // Fast, flicker-free refresh without tearing down the UI
+        viewModel.refreshOnResume()
     }
 
     override fun onDestroy() {

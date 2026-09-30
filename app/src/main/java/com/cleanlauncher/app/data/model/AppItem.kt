@@ -1,5 +1,6 @@
-﻿package com.cleanlauncher.app.data.model
+package com.cleanlauncher.app.data.model
 
+import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 
 data class AppItem(
@@ -8,6 +9,7 @@ data class AppItem(
     val packageName: String,
     val activityName: String = "",
     val icon: Drawable?,
+    val iconBitmap: Bitmap? = null,
     val category: AppCategory,
     val isFavorite: Boolean = false,
     val isSystemApp: Boolean = false,

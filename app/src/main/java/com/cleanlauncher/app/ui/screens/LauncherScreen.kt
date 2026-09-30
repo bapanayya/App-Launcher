@@ -364,6 +364,7 @@ fun UltraCleanHomeScreen(
                         ) {
                             AppIconImage(
                                 drawable = app.icon,
+                                bitmap = app.iconBitmap,
                                 modifier = Modifier.size(54.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -891,6 +892,7 @@ fun MinimalAppListItem(
         ) {
             AppIconImage(
                 drawable = app.icon,
+                bitmap = app.iconBitmap,
                 modifier = Modifier
                     .size(38.dp)
                     .clip(CircleShape)
@@ -1042,6 +1044,7 @@ fun AppGridItem(
     ) {
         AppIconImage(
             drawable = app.icon,
+            bitmap = app.iconBitmap,
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
@@ -1061,14 +1064,15 @@ fun AppGridItem(
 @Composable
 fun AppIconImage(
     drawable: Drawable?,
+    bitmap: android.graphics.Bitmap? = null,
     modifier: Modifier = Modifier
 ) {
-    if (drawable != null) {
-        val bitmap = remember(drawable) {
-            drawable.toBitmap(width = 96, height = 96)
-        }
+    val effectiveBitmap = remember(bitmap, drawable) {
+        bitmap ?: drawable?.toBitmap(width = 96, height = 96)
+    }
+    if (effectiveBitmap != null) {
         Image(
-            bitmap = bitmap.asImageBitmap(),
+            bitmap = effectiveBitmap.asImageBitmap(),
             contentDescription = null,
             modifier = modifier
         )
@@ -1115,6 +1119,7 @@ fun LauncherDock(
                 ) {
                     AppIconImage(
                         drawable = app.icon,
+                        bitmap = app.iconBitmap,
                         modifier = Modifier.size(46.dp)
                     )
                     Spacer(modifier = Modifier.height(3.dp))
@@ -1169,6 +1174,7 @@ fun AppActionBottomSheet(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AppIconImage(
                         drawable = app.icon,
+                        bitmap = app.iconBitmap,
                         modifier = Modifier.size(44.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))

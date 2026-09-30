@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 enum class ViewMode(val label: String) {
     SECTIONS("Sections"),         // Sleek vertical scroll with collapsible categorized sections
@@ -59,9 +60,11 @@ class LauncherViewModel(
         loadApps()
     }
 
-    fun loadApps() {
+    fun loadApps(showLoading: Boolean = true) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            if (showLoading && _uiState.value.allApps.isEmpty()) {
+                _uiState.update { it.copy(isLoading = true) }
+            }
             val apps = repository.getInstalledApps()
             val categories = repository.getAllCategories()
             val dock = repository.resolveDockApps(apps)
@@ -79,6 +82,18 @@ class LauncherViewModel(
                 )
             }
             recomputeFilteredState()
+        }
+    }
+
+    /**
+     * Fast, flicker-free refresh when returning from another app.
+     * Does NOT tear down the UI or show loading spinners.
+     */
+    fun refreshOnResume() {
+        val isDefault = repository.isDefaultLauncher()
+        _uiState.update { it.copy(isDefaultLauncher = isDefault) }
+        if (_uiState.value.allApps.isEmpty()) {
+            loadApps(showLoading = true)
         }
     }
 
@@ -188,8 +203,54 @@ class LauncherViewModel(
     }
 
     fun launchApp(app: AppItem) {
+        // 1. Launch the app immediately without blocking UI thread
         repository.launchApp(app)
-        recomputeFilteredState()
+
+        // 2. Asynchronously update frequent apps without freezing the app launch transition
+        viewModelScope.launch(Dispatchers.IO) {
+            val query = _uiState.value.searchQuery.trim().lowercase()
+            val currentCategory = _uiState.value.selectedCategory
+            val all = _uiState.value.allApps
+            val categoryOrder = _uiState.value.allCategories.map { it.id }
+
+            val queryMatchingApps = all.filter { a ->
+                query.isEmpty() ||
+                a.label.lowercase().contains(query) ||
+                a.packageName.lowercase().contains(query)
+            }
+            val frequentApps = repository.getFrequentlyUsedApps(queryMatchingApps)
+            val counts = queryMatchingApps.groupBy { it.category }
+                .mapValues { it.value.size }
+                .toMutableMap()
+            counts[AppCategory.FREQUENT] = frequentApps.size
+
+            val grouped = linkedMapOf<AppCategory, List<AppItem>>()
+            if (frequentApps.isNotEmpty()) {
+                grouped[AppCategory.FREQUENT] = frequentApps
+            }
+            val otherGrouped = queryMatchingApps.groupBy { it.category }
+                .toSortedMap(compareBy { cat ->
+                    val idx = categoryOrder.indexOf(cat.id)
+                    if (idx != -1) idx else 999
+                })
+            for ((cat, appList) in otherGrouped) {
+                if (cat.id != AppCategory.FREQUENT.id) {
+                    grouped[cat] = appList
+                }
+            }
+            val filteredList = when (currentCategory.id) {
+                AppCategory.ALL.id -> queryMatchingApps
+                AppCategory.FREQUENT.id -> frequentApps
+                else -> queryMatchingApps.filter { it.category.id == currentCategory.id }
+            }
+            _uiState.update {
+                it.copy(
+                    filteredApps = filteredList,
+                    appsByCategory = grouped,
+                    categoryCounts = counts
+                )
+            }
+        }
     }
 
     fun openAppInfo(app: AppItem) {

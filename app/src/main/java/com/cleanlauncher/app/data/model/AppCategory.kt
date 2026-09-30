@@ -1,4 +1,4 @@
-﻿package com.cleanlauncher.app.data.model
+package com.cleanlauncher.app.data.model
 
 import android.content.pm.ApplicationInfo
 import android.os.Build
@@ -12,25 +12,24 @@ data class AppCategory(
     companion object {
         val ALL = AppCategory("all", "All", 0)
         val FREQUENT = AppCategory("frequent", "Frequent", 1)
-        val WEBPAGES = AppCategory("webpages", "Webpages", 2)
-        val COMMUNICATION = AppCategory("communication", "Communication", 3)
-        val SOCIAL_MEDIA = AppCategory("social_media", "Social Media", 4)
-        val ENTERTAINMENT = AppCategory("entertainment", "Entertainment", 5)
-        val GAMES = AppCategory("games", "Games", 6)
-        val SHOPPING = AppCategory("shopping", "Shopping", 7)
-        val BANKING_PAYMENTS = AppCategory("banking_payments", "Banking & Payments", 8)
-        val PRODUCTIVITY = AppCategory("productivity", "Work & Productivity", 9)
-        val UTILITIES = AppCategory("utilities", "Utility & Tools", 10)
-        val EDUCATION = AppCategory("education", "Education & Reference", 11)
-        val LIFESTYLE = AppCategory("lifestyle", "Lifestyle", 12)
-        val HEALTH = AppCategory("health", "Health", 13)
-        val TRAVEL = AppCategory("travel", "Travel", 14)
+        val COMMUNICATION = AppCategory("communication", "Communication", 2)
+        val SOCIAL_MEDIA = AppCategory("social_media", "Social Media", 3)
+        val ENTERTAINMENT = AppCategory("entertainment", "Entertainment", 4)
+        val GAMES = AppCategory("games", "Games", 5)
+        val SHOPPING = AppCategory("shopping", "Shopping", 6)
+        val BANKING_PAYMENTS = AppCategory("banking_payments", "Banking & Payments", 7)
+        val PRODUCTIVITY = AppCategory("productivity", "Work & Productivity", 8)
+        val UTILITIES = AppCategory("utilities", "Utility & Tools", 9)
+        val EDUCATION = AppCategory("education", "Education & Reference", 10)
+        val LIFESTYLE = AppCategory("lifestyle", "Lifestyle", 11)
+        val HEALTH = AppCategory("health", "Health", 12)
+        val TRAVEL = AppCategory("travel", "Travel", 13)
+        val WEBPAGES = AppCategory("webpages", "Webpages", 14)
         val OTHER = AppCategory("other", "Others", 15)
 
         val DEFAULT_CATEGORIES = listOf(
             ALL,
             FREQUENT,
-            WEBPAGES,
             COMMUNICATION,
             SOCIAL_MEDIA,
             ENTERTAINMENT,
@@ -43,6 +42,7 @@ data class AppCategory(
             LIFESTYLE,
             HEALTH,
             TRAVEL,
+            WEBPAGES,
             OTHER
         )
 
@@ -53,7 +53,6 @@ data class AppCategory(
         }
 
         fun fromId(id: String, customList: List<AppCategory> = emptyList()): AppCategory {
-            // Legacy mapping support for previous version category IDs
             val mappedId = when (id) {
                 "media" -> "entertainment"
                 "finance" -> "banking_payments"
@@ -66,13 +65,139 @@ data class AppCategory(
 
         /**
          * Resolves the category using Android's native ApplicationInfo.category (API 26+)
-         * with comprehensive keyword heuristics for all 15 categories.
+         * with comprehensive keyword heuristics tailored to user classification.
          */
         fun resolve(appInfo: ApplicationInfo, label: String): AppCategory {
-            // 1. Android native classification
+            val text = "${appInfo.packageName.lowercase()} ${label.lowercase()}"
+
+            // 1. Explicit Games check
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && appInfo.category == ApplicationInfo.CATEGORY_GAME) {
+                return GAMES
+            }
+            if (text.containsAny("game", "candy", "crush", "pubg", "bgmi", "krafton", "play", "puzzle", "arcade", "rpg", "racing", "chess", "ludo", "cards", "freefire", "action", "clash", "strike", "asphalt", "roblox", "minecraft", "subway", "surfers", "temple run")) {
+                return GAMES
+            }
+
+            // 2. Communication
+            // Gmail, other e-mailing apps, Messaging apps, WhatsApp, Truecaller, Telegram, calling apps, Video calling apps, chatting apps, Facebook Messenger, Snapchat
+            if (text.containsAny(
+                    "whatsapp", "truecaller", "telegram", "messenger", "signal", "viber", "wechat", "line",
+                    "gmail", "email", "mail", "outlook", "yahoo", "zoho", "proton", "inbox", "exchange",
+                    "sms", "mms", "messaging", "message", "chat", "dialer", "phone", "contacts", "telephony",
+                    "calling", "video call", "meet", "skype", "botim"
+                )) {
+                return COMMUNICATION
+            }
+
+            // 3. Social Media
+            // Facebook, Instagram, X, Snapchat, Sharechat, LinkedIn
+            if (text.containsAny(
+                    "facebook", "katana", "instagram", "twitter", "x.com", "snapchat", "sharechat", "linkedin",
+                    "threads", "reddit", "pinterest", "tiktok", "tumblr", "bluesky", "mastodon"
+                )) {
+                return SOCIAL_MEDIA
+            }
+
+            // 4. Shopping
+            // Flipkart, Amazon, Meesho, First Cry, Snapdeal, Myntra, Ajio, Nykaa Fashion, Lenskart, Swiggy, Blinkit, Bigbasket, JioMart, Swiggy Instamart, etc.
+            if (text.containsAny(
+                    "flipkart", "amazon", "meesho", "firstcry", "first cry", "snapdeal", "myntra", "ajio",
+                    "nykaa", "lenskart", "swiggy", "blinkit", "bigbasket", "bbdaily", "jiomart", "instamart",
+                    "zepto", "zomato", "shop", "shopping", "store", "cart", "market", "ebay", "shopsy", "tatacliq"
+                )) {
+                return SHOPPING
+            }
+
+            // 5. Banking & Payments
+            // All official banking apps, all Net Banking apps, Credit card apps, Digital payment & UPI (CRED, PhonePe, GPay, BHIM, Paytm, Mobikwik), Stock market (Angel One, Zerodha Kite, Upstox, 5Paisa, Fyers)
+            if (text.containsAny(
+                    "sbi", "yono", "hdfc", "icici", "imobile", "axis", "pnb", "kotak", "811", "bob", "bobworld",
+                    "canara", "union", "indusind", "idfc", "bank", "banking", "netbanking", "cred", "phonepe",
+                    "gpay", "tez", "paisa", "bhim", "paytm", "mobikwik", "freecharge", "navi", "pay", "payment",
+                    "upi", "wallet", "paypal", "credit card", "card", "onecard", "angelone", "angel", "zerodha",
+                    "kite", "upstox", "5paisa", "fyers", "groww", "dhan", "indmoney", "etmoney", "crypto", "binance", "coindcx"
+                )) {
+                return BANKING_PAYMENTS
+            }
+
+            // 6. Travel
+            // IRCTC, Rail One, MakeMyTrip, Goibibo, EaseMyTrip, Yatra, Where Is My Train, redBus, Uber, Ola, Rapido, Booking.com, Agoda, Google maps, navigation apps, compass
+            if (text.containsAny(
+                    "irctc", "rail one", "railone", "where is my train", "whereismytrain", "train", "rail",
+                    "makemytrip", "goibibo", "easemytrip", "yatra", "redbus", "booking.com", "booking", "agoda",
+                    "uber", "ola", "olacabs", "rapido", "maps", "map", "navigation", "gps", "waze", "metro", "flight"
+                )) {
+                return TRAVEL
+            }
+
+            // 7. Education & Reference
+            // BYJU'S, Physics Wallah, Khan Academy India, Vedantu, DIKSHA App, NCERT e-Pathshala, Swayam, National Digital Library of India (NDLI), Unacademy, Coursera, Udemy, Books apps
+            if (text.containsAny(
+                    "byju", "physics wallah", "physicswallah", "khan academy", "khanacademy", "vedantu", "diksha",
+                    "ncert", "epathshala", "e-pathshala", "swayam", "ndli", "digital library", "unacademy", "coursera",
+                    "udemy", "duolingo", "testbook", "wikipedia", "dictionary", "book", "books", "library", "kindle", "kobo",
+                    "exam", "study", "learn", "course", "education", "reference"
+                )) {
+                return EDUCATION
+            }
+
+            // 8. Health
+            // Practo, Apollo 24/7, all health tracking apps, all Yoga, meditation apps, medical apps
+            if (text.containsAny(
+                    "practo", "apollo", "health", "fitness", "fitbit", "step", "pedometer", "calorie", "run", "strava",
+                    "workout", "gym", "yoga", "meditation", "mindfulness", "headspace", "calm", "cult", "medicine",
+                    "pharmacy", "1mg", "pharmeasy", "netmeds", "doctor", "hospital", "medical"
+                )) {
+                return HEALTH
+            }
+
+            // 9. Work & Productivity
+            // Google products, Calendars, Google Workspace (Docs, Sheets, Slides, etc.), Microsoft 365 (Word, Excel, PowerPoint, etc.), office work, Adobe Acrobat Reader, AI apps (ChatGPT, Gemini, Grok AI, Perplexity, etc.)
+            if (text.containsAny(
+                    "docs", "sheets", "slides", "drive", "keep", "notes", "calendar", "word", "excel", "powerpoint",
+                    "office", "onenote", "adobe", "acrobat", "reader", "pdf", "chatgpt", "openai", "gemini", "grok",
+                    "perplexity", "claude", "copilot", "notion", "slack", "trello", "asana", "todo", "task", "workspace",
+                    "evernote", "clickup", "productivity"
+                )) {
+                return PRODUCTIVITY
+            }
+
+            // 10. Utility & Tools
+            // DigiLocker, mAadhaar, mParivahan, UMANG, Scanner apps, System tools, Camera apps, Find My Device, all Browsers, Calculator, compass, basic system utilities
+            if (text.containsAny(
+                    "digilocker", "maadhaar", "aadhaar", "uidai", "mparivahan", "parivahan", "umang", "scanner",
+                    "camscanner", "scan", "camera", "cam", "findmydevice", "find my device", "find phone", "browser",
+                    "chrome", "firefox", "edge", "opera", "brave", "duckduckgo", "safari", "sbrowser", "kiwi", "vivaldi",
+                    "calc", "calculator", "compass", "settings", "tool", "tools", "clock", "timer", "alarm", "files",
+                    "filemanager", "cleaner", "wifi", "bluetooth", "security", "torch", "flashlight", "system", "backup"
+                )) {
+                return UTILITIES
+            }
+
+            // 11. Lifestyle
+            // Food and cooking apps, smart home apps, smart work apps, lifestyle
+            if (text.containsAny(
+                    "food", "cooking", "recipe", "cook", "kitchen", "chef", "tasty", "smart home", "smarthome",
+                    "smart life", "smartlife", "tuya", "alexa", "home", "mi home", "google home", "iot", "lifestyle",
+                    "habit", "routine", "horoscope", "astro", "salon", "beauty", "fashion", "weather", "news"
+                )) {
+                return LIFESTYLE
+            }
+
+            // 12. Entertainment
+            // YouTube, Netflix, Prime Video, Jio Hotstar, ZEE5, SonyLIV, Sun NXT, aha, BookMyShow, Kuku TV, all Music (JioSaavn, Spotify, etc.)
+            if (text.containsAny(
+                    "youtube", "netflix", "prime video", "primevideo", "hotstar", "disney", "zee5", "sonyliv",
+                    "sunnxt", "sun nxt", "arha", "aha", "bookmyshow", "kuku", "kukufm", "saavn", "jiosaavn",
+                    "spotify", "gaana", "wynk", "music", "audio", "podcast", "radio", "sound", "cinema", "movie",
+                    "tv", "stream", "vlc", "mxplayer", "player", "entertainment"
+                )) {
+                return ENTERTAINMENT
+            }
+
+            // Android native category fallbacks
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 when (appInfo.category) {
-                    ApplicationInfo.CATEGORY_GAME -> return GAMES
                     ApplicationInfo.CATEGORY_AUDIO,
                     ApplicationInfo.CATEGORY_VIDEO,
                     ApplicationInfo.CATEGORY_IMAGE -> return ENTERTAINMENT
@@ -83,53 +208,9 @@ data class AppCategory(
                 }
             }
 
-            // 2. Keyword heuristic mapping based on package name and app title
-            val text = "${appInfo.packageName.lowercase()} ${label.lowercase()}"
-
-            return when {
-                // Games
-                text.containsAny("game", "play", "puzzle", "arcade", "rpg", "racing", "chess", "ludo", "cards", "pubg", "freefire", "action", "candy", "clash", "strike") -> GAMES
-
-                // Social Media
-                text.containsAny("whatsapp", "telegram", "signal", "discord", "instagram", "facebook", "twitter", "x.com", "threads", "snapchat", "reddit", "linkedin", "tiktok", "wechat", "pinterest", "sharechat") -> SOCIAL_MEDIA
-
-                // Communication
-                text.containsAny("call", "dialer", "phone", "contacts", "sms", "message", "messaging", "mms", "telephony", "mail", "gmail", "outlook", "email", "inbox") -> COMMUNICATION
-
-                // Banking & Payments
-                text.containsAny("bank", "pay", "payment", "upi", "wallet", "paypal", "gpay", "phonepe", "paytm", "bhim", "yono", "sbi", "hdfc", "icici", "axis", "crypto", "finance", "money", "cred", "zerodha", "groww", "angel", "upstox") -> BANKING_PAYMENTS
-
-                // Shopping
-                text.containsAny("shop", "store", "cart", "market", "amazon", "flipkart", "myntra", "meesho", "ajio", "ebay", "order", "delivery", "blinkit", "zepto", "swiggy", "zomato", "instamart", "bigbasket") -> SHOPPING
-
-                // Entertainment
-                text.containsAny("spotify", "youtube", "music", "netflix", "prime", "video", "hotstar", "camera", "gallery", "photos", "player", "podcast", "sound", "radio", "stream", "tv", "movie", "cinema", "jio", "zee5", "vlc") -> ENTERTAINMENT
-
-                // Work & Productivity
-                text.containsAny("docs", "sheets", "slides", "drive", "notes", "keep", "notion", "slack", "zoom", "teams", "office", "todo", "task", "word", "excel", "powerpoint", "pdf", "scanner", "adobe", "workspace", "evernote") -> PRODUCTIVITY
-
-                // Education & Reference
-                text.containsAny("school", "college", "exam", "study", "learn", "course", "udemy", "coursera", "duolingo", "wikipedia", "dictionary", "book", "library", "edu", "academy", "class", "prep", "testbook", "unacademy") -> EDUCATION
-
-                // Health
-                text.containsAny("health", "fitness", "gym", "workout", "yoga", "doctor", "medicine", "pharmacy", "1mg", "apollo", "practo", "step", "calorie", "hospital", "fitbit", "meditation") -> HEALTH
-
-                // Travel
-                text.containsAny("travel", "map", "maps", "gps", "navigation", "uber", "ola", "rapido", "irctc", "rail", "train", "flight", "bus", "booking", "makemytrip", "goibibo", "hotel", "metro", "redbus") -> TRAVEL
-
-                // Lifestyle
-                text.containsAny("home", "food", "cooking", "recipe", "fashion", "beauty", "salon", "horoscope", "astro", "weather", "news", "times", "hindu", "daily", "chronicle") -> LIFESTYLE
-
-                // Utility & Tools
-                text.containsAny("settings", "tool", "calc", "clock", "timer", "alarm", "files", "manager", "browser", "chrome", "firefox", "edge", "opera", "cleaner", "wifi", "bluetooth", "security", "compass", "flashlight", "torch", "assist", "system") -> UTILITIES
-
-                else -> OTHER
-            }
+            return OTHER
         }
 
-        /**
-         * Resolves category for web shortcuts; defaults to WEBPAGES.
-         */
         fun resolveWebShortcut(label: String, url: String): AppCategory {
             return WEBPAGES
         }

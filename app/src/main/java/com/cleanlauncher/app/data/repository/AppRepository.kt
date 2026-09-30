@@ -1,4 +1,4 @@
-﻿package com.cleanlauncher.app.data.repository
+package com.cleanlauncher.app.data.repository
 
 import android.app.role.RoleManager
 import android.content.ComponentName
@@ -21,6 +21,8 @@ import android.provider.Settings
 import android.provider.Telephony
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
+import android.graphics.Bitmap
 import com.cleanlauncher.app.R
 import com.cleanlauncher.app.data.model.AppCategory
 import com.cleanlauncher.app.data.model.AppItem
@@ -65,6 +67,11 @@ class AppRepository(private val context: Context) {
                 val pkgName = resolveInfo.activityInfo.packageName
                 val activityName = resolveInfo.activityInfo.name
                 val icon = resolveInfo.loadIcon(packageManager)
+                val iconBitmap = try {
+                    icon.toBitmap(96, 96)
+                } catch (_: Exception) {
+                    null
+                }
                 val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
 
                 val savedCategoryVal = prefs.getString("cat_override_$pkgName", null)
@@ -81,6 +88,7 @@ class AppRepository(private val context: Context) {
                     packageName = pkgName,
                     activityName = activityName,
                     icon = icon,
+                    iconBitmap = iconBitmap,
                     category = category,
                     isSystemApp = isSystem
                 )
@@ -178,17 +186,20 @@ class AppRepository(private val context: Context) {
                 val iconPath = obj.optString("iconPath")
 
                 var iconDrawable: Drawable? = null
+                var iconBitmap: Bitmap? = null
                 if (!iconPath.isNullOrEmpty()) {
                     val file = File(iconPath)
                     if (file.exists()) {
                         val bitmap = BitmapFactory.decodeFile(file.absolutePath)
                         if (bitmap != null) {
+                            iconBitmap = bitmap
                             iconDrawable = BitmapDrawable(context.resources, bitmap)
                         }
                     }
                 }
                 if (iconDrawable == null) {
                     iconDrawable = defaultWebIcon
+                    iconBitmap = try { defaultWebIcon?.toBitmap(96, 96) } catch (_: Exception) { null }
                 }
 
                 // Check user category override for this shortcut
@@ -207,6 +218,7 @@ class AppRepository(private val context: Context) {
                         packageName = pkg,
                         activityName = "",
                         icon = iconDrawable,
+                        iconBitmap = iconBitmap,
                         category = category,
                         isShortcut = true,
                         shortcutId = id,
@@ -314,7 +326,7 @@ class AppRepository(private val context: Context) {
 
     fun getAllCategories(): List<AppCategory> {
         val baseList = AppCategory.DEFAULT_CATEGORIES + getCustomCategories()
-        val orderString = prefs.getString("categories_display_order_v2", null)
+        val orderString = prefs.getString("categories_display_order_v3", null)
         if (orderString != null) {
             val orderIds = orderString.split(",")
             val map = baseList.associateBy { it.id }
@@ -327,7 +339,7 @@ class AppRepository(private val context: Context) {
 
     fun saveCategoryOrder(order: List<AppCategory>) {
         val str = order.joinToString(",") { it.id }
-        prefs.edit().putString("categories_display_order_v2", str).apply()
+        prefs.edit().putString("categories_display_order_v3", str).apply()
     }
 
     /**
@@ -580,23 +592,23 @@ class AppRepository(private val context: Context) {
             return
         }
 
-        // Standard App launch
+        // Standard App launch: Prioritize official launch intent to resume existing tasks cleanly
         recordAppLaunch(app.packageName)
         try {
-            val intent = Intent(Intent.ACTION_MAIN).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-                component = ComponentName(app.packageName, app.activityName)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-            }
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            val fallbackIntent = packageManager.getLaunchIntentForPackage(app.packageName)
-            if (fallbackIntent != null) {
-                fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(fallbackIntent)
+            val launchIntent = packageManager.getLaunchIntentForPackage(app.packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(launchIntent)
             } else {
-                Toast.makeText(context, "Cannot open ${app.label}", Toast.LENGTH_SHORT).show()
+                val intent = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                    component = ComponentName(app.packageName, app.activityName)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
             }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Cannot open ${app.label}", Toast.LENGTH_SHORT).show()
         }
     }
 
