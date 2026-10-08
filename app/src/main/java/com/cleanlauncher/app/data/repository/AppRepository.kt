@@ -268,40 +268,177 @@ class AppRepository(private val context: Context) {
         return list
     }
 
+    companion object {
+        private const val PREF_KEY_FREQUENT_APPS = "persistent_frequent_apps_v2"
+        private const val PREF_KEY_REMOVED_FREQUENT = "user_removed_frequent_apps_v2"
+        private const val PREF_KEY_LAUNCH_COUNT_PREFIX = "launch_count_"
+    }
+
     /**
-     * Records an app/shortcut launch for calculating frequent apps.
+     * Checks if the app/shortcut is one of the most common apps used on regular working days:
+     * WhatsApp, File Manager / Files where files are generally stored, APFRS, Leap Higher,
+     * Leap School Education, YouTube, Maps, Gmail, GeoTag Studio, ExamReady, saved web pages,
+     * and essential working day apps (Chrome/Browser, Phone, Camera, Calculator).
+     */
+    fun isCommonEssentialApp(app: AppItem): Boolean {
+        // All user-pinned web pages are treated as frequent working shortcuts
+        if (app.isShortcut) return true
+
+        val text = "${app.packageName.lowercase()} ${app.label.lowercase()}"
+
+        return when {
+            // WhatsApp
+            text.contains("whatsapp") -> true
+
+            // File Manager / Files where files are generally stored
+            text.contains("filemanager") || text.contains("file explorer") ||
+            text.contains("my files") || text.contains("myfiles") ||
+            text.contains("com.google.android.apps.nbu.files") ||
+            text.contains("com.sec.android.app.myfiles") ||
+            text.contains("com.mi.android.globalfileexplorer") ||
+            text.contains("com.coloros.filemanager") ||
+            text.contains("com.vivo.filemanager") ||
+            text.contains("com.oneplus.filemanager") ||
+            text.contains("com.android.documentsui") ||
+            app.label.equals("Files", ignoreCase = true) ||
+            app.label.equals("File Manager", ignoreCase = true) -> true
+
+            // APFRS (Andhra Pradesh Facial Recognition Attendance System)
+            text.contains("apfrs") -> true
+
+            // Leap Higher
+            text.contains("leap higher") || text.contains("leaphigher") -> true
+
+            // Leap School Education
+            text.contains("leap school") || text.contains("leapschooleducation") || text.contains("leap education") -> true
+
+            // YouTube
+            text.contains("youtube") || app.packageName == "com.google.android.youtube" -> true
+
+            // Maps
+            text.contains("maps") || app.packageName == "com.google.android.apps.maps" -> true
+
+            // Gmail
+            text.contains("gmail") || app.packageName == "com.google.android.gm" -> true
+
+            // GeoTag Studio
+            text.contains("geotag") -> true
+
+            // ExamReady
+            text.contains("examready") || text.contains("exam ready") -> true
+
+            // Regular working day essentials: Default/Primary Browser, Camera, Phone, Calculator
+            text.contains("chrome") || text.contains("browser") || text.contains("sbrowser") ||
+            text.contains("camera") || text.contains("dialer") || text.contains("phone") ||
+            text.contains("calc") || text.contains("calculator") -> true
+
+            else -> false
+        }
+    }
+
+    /**
+     * Records an app/shortcut launch.
+     * When launched at least twice, automatically adds to Frequent category permanently.
      */
     fun recordAppLaunch(idOrPackage: String) {
         try {
-            val key = "launch_history_$idOrPackage"
-            val now = System.currentTimeMillis()
-            val cutoff = now - 24 * 60 * 60 * 1000L // last 24 hours
-            val raw = prefs.getString(key, null)
-            val list = mutableListOf<Long>()
-            if (raw != null) {
-                raw.split(",").mapNotNull { it.toLongOrNull() }.filter { it > cutoff }.forEach { list.add(it) }
+            val countKey = "$PREF_KEY_LAUNCH_COUNT_PREFIX$idOrPackage"
+            val currentCount = prefs.getInt(countKey, 0) + 1
+            prefs.edit().putInt(countKey, currentCount).apply()
+
+            val removedSet = prefs.getStringSet(PREF_KEY_REMOVED_FREQUENT, emptySet()) ?: emptySet()
+            if (currentCount >= 2 && idOrPackage !in removedSet) {
+                val currentFrequent = prefs.getStringSet(PREF_KEY_FREQUENT_APPS, emptySet())?.toMutableSet() ?: mutableSetOf()
+                if (currentFrequent.add(idOrPackage)) {
+                    prefs.edit().putStringSet(PREF_KEY_FREQUENT_APPS, currentFrequent).apply()
+                }
             }
-            list.add(now)
-            prefs.edit().putString(key, list.joinToString(",")).apply()
         } catch (_: Exception) {}
     }
 
     /**
-     * Returns apps that have been used at least twice in the last 24 hours,
-     * sorted in strict alphabetical order.
+     * Explicitly adds an app/shortcut to the persistent Frequent category.
+     */
+    fun addAppToFrequent(idOrPackage: String) {
+        try {
+            val currentFrequent = prefs.getStringSet(PREF_KEY_FREQUENT_APPS, emptySet())?.toMutableSet() ?: mutableSetOf()
+            currentFrequent.add(idOrPackage)
+
+            val removedSet = prefs.getStringSet(PREF_KEY_REMOVED_FREQUENT, emptySet())?.toMutableSet() ?: mutableSetOf()
+            removedSet.remove(idOrPackage)
+
+            prefs.edit()
+                .putStringSet(PREF_KEY_FREQUENT_APPS, currentFrequent)
+                .putStringSet(PREF_KEY_REMOVED_FREQUENT, removedSet)
+                .apply()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Explicitly removes an app/shortcut from the Frequent category.
+     * Once removed by user, it will NOT be auto-added again.
+     */
+    fun removeAppFromFrequent(idOrPackage: String) {
+        try {
+            val currentFrequent = prefs.getStringSet(PREF_KEY_FREQUENT_APPS, emptySet())?.toMutableSet() ?: mutableSetOf()
+            currentFrequent.remove(idOrPackage)
+
+            val removedSet = prefs.getStringSet(PREF_KEY_REMOVED_FREQUENT, emptySet())?.toMutableSet() ?: mutableSetOf()
+            removedSet.add(idOrPackage)
+
+            prefs.edit()
+                .putStringSet(PREF_KEY_FREQUENT_APPS, currentFrequent)
+                .putStringSet(PREF_KEY_REMOVED_FREQUENT, removedSet)
+                .apply()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Returns true if the app is currently in the Frequent category.
+     */
+    fun isAppInFrequent(app: AppItem): Boolean {
+        val identifier = if (app.isShortcut) app.id else app.packageName
+        val removedSet = prefs.getStringSet(PREF_KEY_REMOVED_FREQUENT, emptySet()) ?: emptySet()
+        if (identifier in removedSet) return false
+
+        val persistentFrequent = prefs.getStringSet(PREF_KEY_FREQUENT_APPS, null)
+        if (persistentFrequent != null && identifier in persistentFrequent) {
+            return true
+        }
+
+        // If not in persistent set yet, check if it is one of the common essential apps
+        return isCommonEssentialApp(app)
+    }
+
+    /**
+     * Returns all apps belonging to the "Frequent" category.
+     * Contains common essential apps (WhatsApp, Files, APFRS, YouTube, Maps, Gmail, ExamReady, etc.)
+     * and apps used at least twice.
+     * Once added, they are NEVER removed automatically unless the user changes their category.
+     * Sorted in strict alphabetical order (A-Z).
      */
     fun getFrequentlyUsedApps(allApps: List<AppItem>): List<AppItem> {
-        val now = System.currentTimeMillis()
-        val cutoff = now - 24 * 60 * 60 * 1000L // 24 hours
-        return allApps.filter { app ->
-            val key = if (app.isShortcut) "launch_history_${app.id}" else "launch_history_${app.packageName}"
-            val raw = prefs.getString(key, null)
-            if (raw != null) {
-                val count = raw.split(",").mapNotNull { it.toLongOrNull() }.count { it > cutoff }
-                count >= 2
-            } else {
-                false
+        val removedSet = prefs.getStringSet(PREF_KEY_REMOVED_FREQUENT, emptySet()) ?: emptySet()
+        val currentFrequent = prefs.getStringSet(PREF_KEY_FREQUENT_APPS, null)?.toMutableSet()
+            ?: mutableSetOf()
+
+        // Seed with common essential apps that have not been explicitly removed by the user
+        var changed = false
+        allApps.forEach { app ->
+            val identifier = if (app.isShortcut) app.id else app.packageName
+            if (identifier !in removedSet && (identifier in currentFrequent || isCommonEssentialApp(app))) {
+                if (currentFrequent.add(identifier)) {
+                    changed = true
+                }
             }
+        }
+        if (changed) {
+            prefs.edit().putStringSet(PREF_KEY_FREQUENT_APPS, currentFrequent).apply()
+        }
+
+        return allApps.filter { app ->
+            val identifier = if (app.isShortcut) app.id else app.packageName
+            identifier in currentFrequent && identifier !in removedSet
         }.sortedBy { it.label.lowercase() }
     }
 

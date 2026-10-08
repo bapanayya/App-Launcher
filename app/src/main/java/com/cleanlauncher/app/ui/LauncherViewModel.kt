@@ -1,4 +1,4 @@
-﻿package com.cleanlauncher.app.ui
+package com.cleanlauncher.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -185,6 +185,11 @@ class LauncherViewModel(
         viewModelScope.launch {
             val identifier = if (app.isShortcut) app.id else app.packageName
             repository.setAppCategory(identifier, newCategory)
+            if (newCategory.id != AppCategory.FREQUENT.id) {
+                repository.removeAppFromFrequent(identifier)
+            } else {
+                repository.addAppToFrequent(identifier)
+            }
             val updatedApps = _uiState.value.allApps.map { item ->
                 if (item.id == app.id) {
                     item.copy(category = newCategory)
@@ -195,6 +200,23 @@ class LauncherViewModel(
             _uiState.update { it.copy(allApps = updatedApps) }
             recomputeFilteredState()
         }
+    }
+
+    fun toggleAppFrequent(app: AppItem) {
+        viewModelScope.launch {
+            val identifier = if (app.isShortcut) app.id else app.packageName
+            val isCurrentlyFrequent = repository.isAppInFrequent(app)
+            if (isCurrentlyFrequent) {
+                repository.removeAppFromFrequent(identifier)
+            } else {
+                repository.addAppToFrequent(identifier)
+            }
+            recomputeFilteredState()
+        }
+    }
+
+    fun isAppInFrequent(app: AppItem): Boolean {
+        return repository.isAppInFrequent(app)
     }
 
     fun setViewMode(mode: ViewMode) {

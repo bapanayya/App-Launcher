@@ -210,11 +210,19 @@ fun LauncherScreen(
 
         // App contextual bottom sheet
         selectedAppForMenu?.let { app ->
+            val isAppFrequent = viewModel.isAppInFrequent(app)
             AppActionBottomSheet(
                 app = app,
                 allCategories = state.allCategories,
                 reminders = state.allReminders.filter { it.packageName == (if (app.isShortcut) app.id else app.packageName) },
+                isFrequent = isAppFrequent,
                 onDismiss = { selectedAppForMenu = null },
+                onToggleFrequent = {
+                    viewModel.toggleAppFrequent(app)
+                    val msg = if (isAppFrequent) "${app.label} removed from Frequent" else "${app.label} added to Frequent"
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    selectedAppForMenu = null
+                },
                 onMoveCategory = { newCategory ->
                     viewModel.moveAppToCategory(app, newCategory)
                     selectedAppForMenu = null
@@ -1149,7 +1157,9 @@ fun AppActionBottomSheet(
     app: AppItem,
     allCategories: List<AppCategory>,
     reminders: List<AppReminder>,
+    isFrequent: Boolean = false,
     onDismiss: () -> Unit,
+    onToggleFrequent: () -> Unit = {},
     onMoveCategory: (AppCategory) -> Unit,
     onCreateCategory: (String) -> Unit,
     onSaveReminder: (AppReminder) -> Unit,
@@ -1229,7 +1239,30 @@ fun AppActionBottomSheet(
                     modifier = Modifier.clickable { showCategoryPicker = true }
                 )
 
-                // 3. App Info & Permissions (for installed apps)
+                // 3. Add to / Remove from Frequent Category
+                ListItem(
+                    headlineContent = { 
+                        Text(if (isFrequent) "Remove from Frequent" else "Add to Frequent") 
+                    },
+                    supportingContent = { 
+                        Text(
+                            if (isFrequent)
+                                "Currently in top Frequent category"
+                            else
+                                "Pin to top Frequent category"
+                        ) 
+                    },
+                    leadingContent = { 
+                        Icon(
+                            imageVector = if (isFrequent) Icons.Default.RemoveCircleOutline else Icons.Default.TrendingUp, 
+                            contentDescription = null, 
+                            tint = MaterialTheme.colorScheme.primary 
+                        ) 
+                    },
+                    modifier = Modifier.clickable { onToggleFrequent() }
+                )
+
+                // 4. App Info & Permissions (for installed apps)
                 if (!app.isShortcut) {
                     ListItem(
                         headlineContent = { Text("App Info & Permissions") },
@@ -1706,7 +1739,7 @@ fun EmptySearchPlaceholder(
             Spacer(modifier = Modifier.height(6.dp))
             if (isFrequentCategory) {
                 Text(
-                    text = "Apps you use at least twice a day will automatically appear here in alphabetical order.",
+                    text = "Common apps (WhatsApp, Files, APFRS, YouTube, Maps, Gmail, ExamReady, etc.) and apps you frequently use will stay pinned here permanently.",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
